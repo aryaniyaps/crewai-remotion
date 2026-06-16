@@ -93,6 +93,8 @@ class SceneSpec(BaseModel):
     image_path: str | None = None
     generated_asset: GeneratedAssetSpec | None = None
     generated_asset_path: str | None = None
+    animated_asset_path: str | None = None
+    animated_asset_type: str | None = None
     background_variant: str = "primary"
     layout: str = "center_stack"
     motion_intent: str = "enter_up"

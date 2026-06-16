@@ -24,6 +24,8 @@ export const BeatScene: React.FC<{
   layout?: string;
   imagePath?: string | null;
   generatedAssetPath?: string | null;
+  animatedAssetPath?: string | null;
+  animatedAssetType?: string | null;
   illustrationId?: string | null;
   showHeadline?: boolean;
   motionGraphics?: MotionGraphic[];
@@ -41,6 +43,8 @@ export const BeatScene: React.FC<{
   layout,
   imagePath,
   generatedAssetPath,
+  animatedAssetPath,
+  animatedAssetType,
   illustrationId,
   showHeadline = true,
   motionGraphics,
@@ -177,6 +181,8 @@ export const BeatScene: React.FC<{
         sceneType={sceneType}
         imagePath={imagePath}
         generatedAssetPath={generatedAssetPath}
+        animatedAssetPath={animatedAssetPath}
+        animatedAssetType={animatedAssetType}
         illustrationId={illustrationId}
         layout={layout}
         motionIntensity={motionIntensity}

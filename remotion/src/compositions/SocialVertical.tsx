@@ -88,6 +88,8 @@ export const SocialVertical: React.FC<VideoSpecProps> = (props) => {
                 layout={scene.layout}
                 imagePath={scene.image_path}
                 generatedAssetPath={scene.generated_asset_path}
+                animatedAssetPath={scene.animated_asset_path}
+                animatedAssetType={scene.animated_asset_type}
                 illustrationId={scene.illustration_id}
                 showHeadline={!hasCaptions}
                 motionGraphics={scene.motion_graphics}

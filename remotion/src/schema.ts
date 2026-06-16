@@ -39,6 +39,8 @@ export const SceneSchema = z.object({
   image_path: z.string().nullable().optional(),
   generated_asset: GeneratedAssetSpecSchema.nullable().optional(),
   generated_asset_path: z.string().nullable().optional(),
+  animated_asset_path: z.string().nullable().optional(),
+  animated_asset_type: z.string().nullable().optional(),
   background_variant: z.enum(['primary', 'secondary', 'surface']).optional(),
   layout: z
     .enum([

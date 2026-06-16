@@ -1,5 +1,6 @@
-import React, {useMemo} from 'react';
-import {AbsoluteFill, Img, interpolate, spring, staticFile, useVideoConfig} from 'remotion';
+import React, {useEffect, useMemo, useState} from 'react';
+import {Lottie, type LottieAnimationData} from '@remotion/lottie';
+import {AbsoluteFill, AnimatedImage, Img, cancelRender, continueRender, delayRender, interpolate, spring, staticFile, useVideoConfig} from 'remotion';
 import type {ThemeTokens} from '../design/tokens';
 
 export type SubjectEntityKind =
@@ -19,6 +20,8 @@ type SubjectLayerProps = {
   sceneType: string;
   imagePath?: string | null;
   generatedAssetPath?: string | null;
+  animatedAssetPath?: string | null;
+  animatedAssetType?: string | null;
   illustrationId?: string | null;
   layout?: string;
   motionIntensity?: MotionIntensity;
@@ -49,6 +52,17 @@ const CITY_BUILDINGS = [
 ] as const;
 const CHIP_PINS = [0, 1, 2, 3, 4, 5, 6, 7] as const;
 const ORBIT_NODES = [0, 1, 2, 3, 4, 5] as const;
+const GENERATED_TRAIL_LAYERS = [1, 2, 3] as const;
+const GENERATED_PULSE_RINGS = [
+  {inset: -22, delay: 0},
+  {inset: -52, delay: 11},
+] as const;
+const GENERATED_PULSE_DOTS = [
+  {x: '6%', y: '18%', size: 10, delay: 0},
+  {x: '91%', y: '24%', size: 8, delay: 7},
+  {x: '12%', y: '78%', size: 7, delay: 13},
+  {x: '86%', y: '74%', size: 11, delay: 19},
+] as const;
 
 const intensityScale = (intensity: MotionIntensity = 'medium'): number => {
   if (intensity === 'low') return 0.65;
@@ -94,6 +108,8 @@ export const SceneSubjectLayer: React.FC<SubjectLayerProps> = ({
   sceneType,
   imagePath,
   generatedAssetPath,
+  animatedAssetPath,
+  animatedAssetType,
   illustrationId,
   layout,
   motionIntensity = 'medium',
@@ -107,6 +123,19 @@ export const SceneSubjectLayer: React.FC<SubjectLayerProps> = ({
     [headline, illustrationId, sceneType, subhead],
   );
 
+  const animatedAssetFormat = animatedAssetPath
+    ? getAnimatedAssetFormat(animatedAssetPath, animatedAssetType)
+    : null;
+  const shouldRenderAnimatedAsset = Boolean(
+    animatedAssetPath &&
+      animatedAssetFormat &&
+      isLocalStaticAssetPath(animatedAssetPath),
+  );
+  const useAnimatedAssetAsPrimary =
+    shouldRenderAnimatedAsset &&
+    (isPrimaryAnimatedAssetType(animatedAssetType) || !generatedAssetPath);
+  const isCardSubject = Boolean(generatedAssetPath || useAnimatedAssetAsPrimary);
+
   const entry = spring({
     frame: frame - 3,
     fps,
@@ -117,14 +146,30 @@ export const SceneSubjectLayer: React.FC<SubjectLayerProps> = ({
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
   });
-  const enterY = interpolate(entry, [0, 1], [120, 0], {
-    extrapolateLeft: 'clamp',
-    extrapolateRight: 'clamp',
-  });
-  const enterScale = interpolate(entry, [0, 1], [0.82, 1], {
-    extrapolateLeft: 'clamp',
-    extrapolateRight: 'clamp',
-  });
+  const enterY = isCardSubject
+    ? interpolate(entry, [0, 0.58, 1], [168, -18, 0], {
+        extrapolateLeft: 'clamp',
+        extrapolateRight: 'clamp',
+      })
+    : interpolate(entry, [0, 1], [120, 0], {
+        extrapolateLeft: 'clamp',
+        extrapolateRight: 'clamp',
+      });
+  const enterScale = isCardSubject
+    ? interpolate(entry, [0, 0.58, 1], [0.72, 1.08, 1], {
+        extrapolateLeft: 'clamp',
+        extrapolateRight: 'clamp',
+      })
+    : interpolate(entry, [0, 1], [0.82, 1], {
+        extrapolateLeft: 'clamp',
+        extrapolateRight: 'clamp',
+      });
+  const enterRotate = isCardSubject
+    ? interpolate(entry, [0, 0.62, 1], [-7, 1.4, 0], {
+        extrapolateLeft: 'clamp',
+        extrapolateRight: 'clamp',
+      })
+    : 0;
   const floatY = Math.sin(frame / 22) * 10 * motionScale;
   const driftX = Math.sin(frame / 48) * 16 * motionScale;
   const sceneProgress = frame / Math.max(durationFrames, 1);
@@ -153,11 +198,21 @@ export const SceneSubjectLayer: React.FC<SubjectLayerProps> = ({
           alignItems: 'center',
           justifyContent: 'center',
           opacity,
-          transform: `translate(${horizontalBias + driftX}px, ${enterY + floatY + parallaxY}px) scale(${enterScale})`,
+          transform: `translate(${horizontalBias + driftX}px, ${enterY + floatY + parallaxY}px) scale(${enterScale}) rotate(${enterRotate}deg)`,
           transformOrigin: 'center center',
         }}
       >
-        {generatedAssetPath ? (
+        {useAnimatedAssetAsPrimary && animatedAssetPath ? (
+          <AnimatedAssetSubject
+            theme={theme}
+            animatedAssetPath={animatedAssetPath}
+            assetFormat={animatedAssetFormat ?? 'gif'}
+            frame={frame}
+            motionScale={motionScale}
+            width={width}
+            height={height}
+          />
+        ) : generatedAssetPath ? (
           <GeneratedAssetSubject
             theme={theme}
             generatedAssetPath={generatedAssetPath}
@@ -187,8 +242,276 @@ export const SceneSubjectLayer: React.FC<SubjectLayerProps> = ({
             side={layout?.includes('right') ? 'left' : 'right'}
           />
         )}
+        {shouldRenderAnimatedAsset && !useAnimatedAssetAsPrimary && animatedAssetPath && (
+          <AnimatedAssetAccent
+            theme={theme}
+            animatedAssetPath={animatedAssetPath}
+            frame={frame}
+            assetFormat={animatedAssetFormat ?? 'gif'}
+            motionScale={motionScale}
+            width={width}
+            height={height}
+            side={layout?.includes('right') ? 'right' : 'left'}
+          />
+        )}
       </div>
     </AbsoluteFill>
+  );
+};
+const isAnimatedImageType = (value: string | null | undefined): boolean => {
+  switch (value) {
+    case 'gif':
+    case 'webp':
+    case 'png':
+    case 'apng':
+    case 'avif':
+      return true;
+    default:
+      return false;
+  }
+};
+
+const isLottieType = (value: string | null | undefined): boolean =>
+  value === 'lottie' || value === 'json';
+
+const isLocalStaticAssetPath = (path: string): boolean => {
+  const normalizedPath = path.trim().toLowerCase();
+  return (
+    normalizedPath.length > 0 &&
+    !normalizedPath.startsWith('http://') &&
+    !normalizedPath.startsWith('https://') &&
+    !normalizedPath.startsWith('//') &&
+    !normalizedPath.startsWith('data:')
+  );
+};
+
+const getAnimatedAssetExtension = (path: string): string => {
+  const queryIndex = path.indexOf('?');
+  const hashIndex = path.indexOf('#');
+  let endIndex = path.length;
+
+  if (queryIndex !== -1 && queryIndex < endIndex) {
+    endIndex = queryIndex;
+  }
+
+  if (hashIndex !== -1 && hashIndex < endIndex) {
+    endIndex = hashIndex;
+  }
+
+  const dotIndex = path.lastIndexOf('.', endIndex);
+  return dotIndex === -1 ? '' : path.slice(dotIndex + 1, endIndex).toLowerCase();
+};
+
+const getAnimatedAssetFormat = (
+  animatedAssetPath: string,
+  animatedAssetType?: string | null,
+): string | null => {
+  const explicitType = animatedAssetType?.trim().toLowerCase();
+
+  if (isAnimatedImageType(explicitType)) {
+    return explicitType ?? null;
+  }
+  if (isLottieType(explicitType)) {
+    return 'lottie';
+  }
+
+  const extension = getAnimatedAssetExtension(animatedAssetPath);
+  if (isAnimatedImageType(extension)) return extension;
+  if (isLottieType(extension)) return 'lottie';
+  return null;
+};
+
+const isPrimaryAnimatedAssetType = (animatedAssetType?: string | null): boolean =>
+  animatedAssetType?.trim().toLowerCase() === 'primary';
+
+const LocalLottieAsset: React.FC<{
+  assetPath: string;
+  style: React.CSSProperties;
+}> = ({assetPath, style}) => {
+  const [handle] = useState(() => delayRender(`Loading Lottie asset ${assetPath}`));
+  const [animationData, setAnimationData] = useState<LottieAnimationData | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+    fetch(staticFile(assetPath))
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error(`Failed to load Lottie asset ${assetPath}: ${response.status}`);
+        }
+        return response.json() as Promise<LottieAnimationData>;
+      })
+      .then((json) => {
+        if (!mounted) return;
+        setAnimationData(json);
+        continueRender(handle);
+      })
+      .catch((error) => cancelRender(error));
+
+    return () => {
+      mounted = false;
+    };
+  }, [assetPath, handle]);
+
+  if (!animationData) return null;
+  return <Lottie animationData={animationData} loop playbackRate={1} style={style} />;
+};
+
+const AnimatedAssetVisual: React.FC<{
+  assetPath: string;
+  assetFormat: string;
+  width: number;
+  height: number;
+  style: React.CSSProperties;
+}> = ({assetPath, assetFormat, width, height, style}) => {
+  if (assetFormat === 'lottie') {
+    return <LocalLottieAsset assetPath={assetPath} style={style} />;
+  }
+
+  return (
+    <AnimatedImage
+      src={staticFile(assetPath)}
+      fit="contain"
+      width={width}
+      height={height}
+      style={style}
+    />
+  );
+};
+
+
+const AnimatedAssetSubject: React.FC<{
+  theme: ThemeTokens;
+  animatedAssetPath: string;
+  assetFormat: string;
+  frame: number;
+  motionScale: number;
+  width: number;
+  height: number;
+}> = ({theme, animatedAssetPath, assetFormat, frame, motionScale, width, height}) => {
+  const stageWidth = Math.min(width - 72, 1010);
+  const stageHeight = Math.min(height * 0.46, 850);
+  const canvasWidth = Math.max(1, Math.round(stageWidth - 96));
+  const canvasHeight = Math.max(1, Math.round(stageHeight - 96));
+  const glowX = 50 + Math.sin(frame / 66) * 18 * motionScale;
+  const glowY = 50 + Math.cos(frame / 60) * 14 * motionScale;
+  const tilt = Math.sin(frame / 70) * 0.72 * motionScale;
+  const assetScale = 0.97 + Math.sin(frame / 88) * 0.014 * motionScale;
+
+  return (
+    <div
+      style={{
+        position: 'relative',
+        zIndex: 2,
+        width: stageWidth,
+        height: stageHeight,
+        borderRadius: 64,
+        padding: 48,
+        boxSizing: 'border-box',
+        background: `linear-gradient(145deg, ${theme.surface}f5, ${theme.primary}20 48%, ${theme.secondary}30), radial-gradient(circle at ${glowX}% ${glowY}%, ${theme.accent}44, transparent 46%)`,
+        border: '2px solid rgba(255,255,255,0.24)',
+        boxShadow: `0 58px 120px rgba(0,0,0,0.44), 0 0 92px ${theme.primary}44, inset 0 0 0 1px rgba(255,255,255,0.1)`,
+        transform: `perspective(1200px) rotateZ(${tilt}deg) rotateY(${tilt * 0.5}deg)`,
+        overflow: 'hidden',
+      }}
+    >
+      <div
+        style={{
+          position: 'absolute',
+          inset: 20,
+          borderRadius: 48,
+          background: `linear-gradient(180deg, rgba(255,255,255,0.16), transparent 30%), radial-gradient(circle at 50% 74%, ${theme.caption_highlight}22, transparent 48%)`,
+          boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.16)',
+        }}
+      />
+      <AnimatedAssetVisual
+        assetPath={animatedAssetPath}
+        assetFormat={assetFormat}
+        width={canvasWidth}
+        height={canvasHeight}
+        style={{
+          position: 'relative',
+          zIndex: 2,
+          width: '100%',
+          height: '100%',
+          filter: 'drop-shadow(0 34px 62px rgba(0,0,0,0.34))',
+          transform: `scale(${assetScale})`,
+          transformOrigin: 'center center',
+        }}
+      />
+      <div
+        style={{
+          position: 'absolute',
+          inset: 0,
+          zIndex: 3,
+          background: 'linear-gradient(115deg, rgba(255,255,255,0.16), transparent 24%, transparent 70%, rgba(255,255,255,0.1))',
+          mixBlendMode: 'screen',
+        }}
+      />
+    </div>
+  );
+};
+
+const AnimatedAssetAccent: React.FC<{
+  theme: ThemeTokens;
+  animatedAssetPath: string;
+  assetFormat: string;
+  frame: number;
+  motionScale: number;
+  width: number;
+  height: number;
+  side: 'left' | 'right';
+}> = ({theme, animatedAssetPath, assetFormat, frame, motionScale, width, height, side}) => {
+  const cardWidth = Math.min(width * 0.32, 340);
+  const cardHeight = Math.min(height * 0.15, 240);
+  const canvasWidth = Math.max(1, Math.round(cardWidth - 28));
+  const canvasHeight = Math.max(1, Math.round(cardHeight - 28));
+  const tilt = Math.sin(frame / 54) * 1.4 * motionScale;
+  const pulse = 0.96 + Math.sin(frame / 18) * 0.018 * motionScale;
+  const slideX = interpolate(Math.min(frame, 18), [0, 18], [side === 'right' ? 110 : -110, 0], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+
+  return (
+    <div
+      style={{
+        position: 'absolute',
+        [side]: Math.max(62, width * 0.06),
+        top: 34,
+        zIndex: 7,
+        width: cardWidth,
+        height: cardHeight,
+        borderRadius: 30,
+        padding: 14,
+        boxSizing: 'border-box',
+        background: `linear-gradient(145deg, ${theme.accent}4d, ${theme.primary}59 48%, ${theme.surface}e8)`,
+        border: '2px solid rgba(255,255,255,0.2)',
+        boxShadow: `0 24px 70px rgba(0,0,0,0.34), 0 0 58px ${theme.accent}2f`,
+        transform: `translateX(${slideX}px) perspective(900px) rotateZ(${tilt}deg) rotateY(${tilt * 0.55}deg) scale(${pulse})`,
+        overflow: 'hidden',
+      }}
+    >
+      <div
+        style={{
+          position: 'absolute',
+          inset: 0,
+          background: `radial-gradient(circle at 22% 18%, ${theme.caption_highlight}4a, transparent 34%), radial-gradient(circle at 88% 78%, ${theme.primary}42, transparent 38%)`,
+        }}
+      />
+      <AnimatedAssetVisual
+        assetPath={animatedAssetPath}
+        assetFormat={assetFormat}
+        width={canvasWidth}
+        height={canvasHeight}
+        style={{
+          position: 'relative',
+          zIndex: 2,
+          width: '100%',
+          height: '100%',
+          filter: 'drop-shadow(0 20px 40px rgba(0,0,0,0.28))',
+        }}
+      />
+    </div>
   );
 };
 
@@ -200,58 +523,256 @@ const GeneratedAssetSubject: React.FC<{
   width: number;
   height: number;
 }> = ({theme, generatedAssetPath, frame, motionScale, width, height}) => {
-  const stageWidth = Math.min(width - 112, 930);
-  const stageHeight = Math.min(height * 0.41, 780);
-  const glowX = 50 + Math.sin(frame / 70) * 18 * motionScale;
-  const glowY = 48 + Math.cos(frame / 64) * 14 * motionScale;
-  const tilt = Math.sin(frame / 72) * 0.85 * motionScale;
-  const imageScale = 0.94 + Math.sin(frame / 96) * 0.012 * motionScale;
+  const {fps} = useVideoConfig();
+  const stageWidth = Math.min(width - 72, 1010);
+  const stageHeight = Math.min(height * 0.46, 850);
+  const assetSrc = staticFile(generatedAssetPath);
+  const cardEntry = spring({
+    frame: frame - 4,
+    fps,
+    config: {damping: 16, stiffness: 132, mass: 0.82},
+    durationInFrames: 26,
+  });
+  const entryLift = interpolate(cardEntry, [0, 1], [30, 0], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+  const entryRotate = interpolate(cardEntry, [0, 0.54, 0.82, 1], [-5.2, 1.3, -0.35, 0], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+  const entryShadow = interpolate(cardEntry, [0, 0.62, 1], [0.34, 0.62, 0.5], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+  const glowX = 50 + Math.sin(frame / 70) * 20 * motionScale;
+  const glowY = 48 + Math.cos(frame / 64) * 16 * motionScale;
+  const tilt = Math.sin(frame / 72) * 0.6 * motionScale + entryRotate;
+  const imageScale = 0.985 + Math.sin(frame / 96) * 0.012 * motionScale;
+  const trailCount = motionScale > 1.15 ? 3 : 2;
+  const sheenX = ((frame * (9 + motionScale * 2)) % (stageWidth + 420)) - 260;
+  const scanY = ((frame * (6 + motionScale * 1.5)) % (stageHeight + 220)) - 110;
+  const scanOpacity = 0.1 + Math.max(0, Math.sin(frame / 17)) * 0.08 * motionScale;
+  const pulseOpacity = 0.16 + Math.max(0, Math.sin(frame / 11)) * 0.16 * motionScale;
+  const ringScale = 0.985 + Math.max(0, Math.sin(frame / 18)) * 0.026 * motionScale;
 
   return (
     <div
       style={{
         position: 'relative',
+        zIndex: 2,
         width: stageWidth,
         height: stageHeight,
-        borderRadius: 56,
-        padding: 32,
-        boxSizing: 'border-box',
-        background: `linear-gradient(145deg, ${theme.surface}f2, ${theme.primary}22 48%, ${theme.secondary}2f), radial-gradient(circle at ${glowX}% ${glowY}%, ${theme.accent}44, transparent 46%)`,
-        border: '2px solid rgba(255,255,255,0.2)',
-        boxShadow: `0 52px 110px rgba(0,0,0,0.42), 0 0 78px ${theme.primary}3a, inset 0 0 0 1px rgba(255,255,255,0.08)`,
-        transform: `perspective(1200px) rotateZ(${tilt}deg) rotateY(${tilt * 0.55}deg)`,
-        overflow: 'hidden',
+        isolation: 'isolate',
       }}
     >
       <div
         style={{
           position: 'absolute',
-          inset: 18,
-          borderRadius: 42,
-          background: `linear-gradient(180deg, rgba(255,255,255,0.14), transparent 34%), radial-gradient(circle at 50% 72%, ${theme.caption_highlight}24, transparent 48%)`,
-          boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.14)',
-        }}
-      />
-      <Img
-        src={staticFile(generatedAssetPath)}
-        style={{
-          position: 'relative',
-          zIndex: 2,
-          width: '100%',
-          height: '100%',
-          objectFit: 'contain',
-          filter: 'drop-shadow(0 30px 58px rgba(0,0,0,0.32))',
-          transform: `scale(${imageScale})`,
+          inset: -42,
+          zIndex: 0,
+          borderRadius: 92,
+          background: `radial-gradient(circle at ${glowX}% ${glowY}%, ${theme.accent}5c, transparent 44%), radial-gradient(circle at 50% 86%, ${theme.primary}4a, transparent 54%)`,
+          filter: 'blur(24px)',
+          opacity: 0.8,
         }}
       />
       <div
         style={{
           position: 'absolute',
-          inset: 0,
-          background: 'linear-gradient(115deg, rgba(255,255,255,0.18), transparent 26%, transparent 72%, rgba(255,255,255,0.1))',
-          mixBlendMode: 'screen',
+          left: '10%',
+          right: '10%',
+          bottom: -34,
+          height: 70,
+          zIndex: 0,
+          borderRadius: '50%',
+          background: 'rgba(0,0,0,0.34)',
+          filter: 'blur(18px)',
         }}
       />
+      {GENERATED_PULSE_RINGS.map((ring, index) => {
+        const pulse = Math.max(0, Math.sin((frame - ring.delay) / 18));
+        const opacity = (0.08 + pulse * 0.12) * Math.min(1, 0.78 + motionScale * 0.22);
+
+        return (
+          <div
+            key={`generated-pulse-ring-${index}`}
+            style={{
+              position: 'absolute',
+              inset: ring.inset,
+              zIndex: 1,
+              borderRadius: 88,
+              border: `1.5px solid ${theme.caption_highlight}55`,
+              opacity,
+              transform: `translateY(${entryLift}px) scale(${0.98 + pulse * 0.065}) rotateZ(${tilt * 0.18}deg)`,
+              boxShadow: `0 0 26px ${theme.caption_highlight}36`,
+            }}
+          />
+        );
+      })}
+      {GENERATED_PULSE_DOTS.map((dot, index) => {
+        const pulse = Math.max(0, Math.sin((frame + dot.delay) / 10));
+        const color = index % 2 === 0 ? theme.caption_highlight : theme.accent;
+        const driftX = Math.sin((frame + dot.delay) / 24) * 8 * motionScale;
+        const driftY = Math.cos((frame + dot.delay) / 28) * 6 * motionScale;
+
+        return (
+          <div
+            key={`generated-pulse-dot-${index}`}
+            style={{
+              position: 'absolute',
+              left: dot.x,
+              top: dot.y,
+              zIndex: 2,
+              width: dot.size,
+              height: dot.size,
+              borderRadius: 999,
+              background: color,
+              opacity: 0.42 + pulse * 0.34,
+              transform: `translate(${driftX}px, ${entryLift + driftY}px) scale(${0.82 + pulse * 0.38})`,
+              boxShadow: `0 0 18px ${color}, 0 0 34px ${color}66`,
+            }}
+          />
+        );
+      })}
+      <div
+        style={{
+          position: 'absolute',
+          inset: 0,
+          zIndex: 1,
+          borderRadius: 64,
+          padding: 40,
+          boxSizing: 'border-box',
+          background: `linear-gradient(145deg, ${theme.surface}ff, ${theme.primary}12 46%, ${theme.secondary}22), radial-gradient(circle at ${glowX}% ${glowY}%, ${theme.accent}30, transparent 45%)`,
+          border: '2px solid rgba(255,255,255,0.28)',
+          boxShadow: `0 68px 132px rgba(0,0,0,${entryShadow}), 0 18px 48px rgba(0,0,0,0.28), 0 0 78px ${theme.primary}38, inset 0 0 0 1px rgba(255,255,255,0.12)`,
+          transform: `translateY(${entryLift}px) perspective(1200px) rotateZ(${tilt}deg) rotateY(${tilt * 0.42}deg)`,
+          overflow: 'hidden',
+        }}
+      >
+        <div
+          style={{
+            position: 'absolute',
+            inset: 20,
+            zIndex: 1,
+            borderRadius: 48,
+            background: `linear-gradient(180deg, rgba(255,255,255,0.14), transparent 28%), radial-gradient(circle at 50% 74%, ${theme.caption_highlight}18, transparent 48%)`,
+            boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.14)',
+          }}
+        />
+        <div
+          style={{
+            position: 'relative',
+            zIndex: 3,
+            width: '100%',
+            height: '100%',
+            borderRadius: 36,
+            overflow: 'hidden',
+          }}
+        >
+          {trailCount > 0 &&
+            GENERATED_TRAIL_LAYERS.map((layer) => {
+              if (layer > trailCount) return null;
+              const lag = frame - layer * 3;
+              const offsetX = (Math.sin(lag / 18) * 8 - layer * 10) * motionScale;
+              const offsetY = (Math.cos(lag / 21) * 6 + layer * 7) * motionScale;
+              const opacity = (0.18 - (layer - 1) * 0.045) * Math.min(1, 0.76 + motionScale * 0.24);
+
+              return (
+                <Img
+                  key={layer}
+                  src={assetSrc}
+                  style={{
+                    position: 'absolute',
+                    inset: 0,
+                    zIndex: layer,
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'contain',
+                    opacity,
+                    filter: `blur(${layer * 0.7}px) drop-shadow(0 26px 50px ${theme.primary}46)`,
+                    transform: `translate(${offsetX}px, ${offsetY}px) scale(${imageScale + layer * 0.022})`,
+                    transformOrigin: 'center center',
+                    mixBlendMode: 'screen',
+                  }}
+                />
+              );
+            })}
+          <Img
+            src={assetSrc}
+            style={{
+              position: 'relative',
+              zIndex: 5,
+              width: '100%',
+              height: '100%',
+              objectFit: 'contain',
+              filter: 'drop-shadow(0 36px 66px rgba(0,0,0,0.42)) saturate(1.06) contrast(1.04)',
+              transform: `scale(${imageScale}) translateZ(0)`,
+              transformOrigin: 'center center',
+            }}
+          />
+        </div>
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            zIndex: 5,
+            background: 'linear-gradient(115deg, rgba(255,255,255,0.12), transparent 24%, transparent 70%, rgba(255,255,255,0.08))',
+            mixBlendMode: 'screen',
+          }}
+        />
+        <div
+          style={{
+            position: 'absolute',
+            top: -80,
+            bottom: -80,
+            left: sheenX,
+            zIndex: 6,
+            width: 190,
+            transform: 'skewX(-18deg)',
+            background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.24), rgba(255,255,255,0.07), transparent)',
+            mixBlendMode: 'screen',
+          }}
+        />
+        <div
+          style={{
+            position: 'absolute',
+            left: 26,
+            right: 26,
+            top: scanY,
+            zIndex: 6,
+            height: 120,
+            borderRadius: 999,
+            background: `linear-gradient(180deg, transparent, ${theme.caption_highlight}2a 46%, transparent)`,
+            filter: 'blur(10px)',
+            opacity: scanOpacity,
+            mixBlendMode: 'screen',
+          }}
+        />
+        <div
+          style={{
+            position: 'absolute',
+            inset: 26,
+            zIndex: 6,
+            borderRadius: 48,
+            border: `2px solid ${theme.caption_highlight}66`,
+            opacity: pulseOpacity,
+            transform: `scale(${ringScale})`,
+            boxShadow: `0 0 30px ${theme.caption_highlight}4a, inset 0 0 24px ${theme.caption_highlight}1f`,
+          }}
+        />
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            zIndex: 7,
+            opacity: 0.08 + Math.max(0, Math.sin(frame / 23)) * 0.04,
+            background: 'repeating-linear-gradient(0deg, transparent 0px, transparent 8px, rgba(255,255,255,0.36) 9px, transparent 11px)',
+            backgroundPositionY: `${frame * 2}px`,
+            mixBlendMode: 'overlay',
+          }}
+        />
+      </div>
     </div>
   );
 };

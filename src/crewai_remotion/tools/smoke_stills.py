@@ -35,7 +35,13 @@ def smoke_test_stills(
     except (json.JSONDecodeError, OSError) as exc:
         return False, f"Failed to read spec: {exc}", []
 
-    total_frames = spec.get("duration_frames", 300)
+    fps = int(spec.get("fps", 30) or 30)
+    spec_frames = int(spec.get("duration_frames", 300) or 300)
+    audio_duration = (spec.get("audio") or {}).get("duration_sec")
+    audio_frames = int(float(audio_duration) * fps) if audio_duration else spec_frames
+    # calculateMetadata trims composition duration to audio duration; avoid probing
+    # frames beyond the rendered composition.
+    total_frames = max(1, min(spec_frames, audio_frames))
     mid_frame = total_frames // 2
     end_frame = max(0, total_frames - 1)
 
@@ -57,8 +63,8 @@ def smoke_test_stills(
             subprocess.run(
                 [
                     "npx", "remotion", "still", "SocialVertical",
-                    str(out_path),
-                    f"--props={spec_path}",
+                    str(out_path.resolve()),
+                    f"--props={spec_path.resolve()}",
                     f"--frame={frame}",
                     "--log=error",
                 ],

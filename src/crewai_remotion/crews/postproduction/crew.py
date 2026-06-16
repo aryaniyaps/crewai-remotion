@@ -132,12 +132,13 @@ def run_postproduction_crew(
     # ── Sound Designer ──
     sound_designer = Agent(
         role="Sound Designer",
-        goal="Select music track, mark sync downbeats, cue SFX on cuts per SFX_BRIDGE, set ducking curve",
+        goal="Select music track, mark sync downbeats, cue SFX on transitions/reveals per SFX_BRIDGE, set ducking curve",
         backstory=f"{sfx_ref} {audio_ref[:300]} "
                   "You design for TikTok/Reels: cuts drive SFX, whoosh transitions are the backbone, "
                   "impact on reveals, silence on dissolves and invisible cuts. "
-                  "VO is primary — every SFX must survive the question: 'Does this help the cut land, "
-                  "or is it noise?' Music ducks under speech; SFX duck under both.",
+                  "Never pepper effects on every spoken word; VO is primary, so every SFX must survive "
+                  "the question: 'Does this help the transition or reveal land, or is it noise?' "
+                  "Music ducks under speech; SFX duck under both.",
         llm=llm,
         verbose=True,
     )
@@ -148,7 +149,7 @@ def run_postproduction_crew(
         "Pick music_track_id from mood, estimate BPM. "
         "Mark sync_markers[] with frame, event (downbeat/snare/phrase_start), "
         "use_for (major_cut/accent_only). "
-        "Cue sfx_cues[] per the SFX_BRIDGE mapping: "
+        "Cue sfx_cues[] on transitions and visual reveals per the SFX_BRIDGE mapping — not on every word: "
         "hard_cut/j_cut/l_cut/dissolve/invisible_cut → no SFX; "
         "jump_cut/cross_cut → whoosh; match_cut/montage → whoosh_low; "
         "smash_cut → impact (may add whoosh/rise as second cue 6-12 frames before); "
@@ -156,7 +157,7 @@ def run_postproduction_crew(
         "STRICT: max 1 SFX cue per beat (smash_cut may have 2). "
         "No SFX on dissolve or invisible_cut — ever. "
         "Montage: whoosh_low every 2-3 items, not every item. "
-        "SFX volume 0.5-0.8; place in VO pauses or at beat boundaries. "
+        "SFX volume 0.5-0.8; place at transition frames, visual reveals, VO pauses, or beat boundaries. "
         "Set ducking_curve: music at 0.25 normally, duck to 0.10 under VO beats.",
         response_format=SoundPlan,
     ).pydantic
@@ -219,13 +220,14 @@ def run_postproduction_crew(
         f"font_heading={brand.visual.font_heading}, font_body={brand.visual.font_body}, "
         f"motion_style={brand.visual.motion_style}, texture={brand.visual.texture}\n"
         "Assemble full VideoSpec. Per beat: id, type, headline, subhead, duration_frames (from EDL), "
-        "generated_asset, illustration_id, image_path, background_variant, layout, motion_intent, cut_type (from EDL), "
+        "generated_asset, animated_asset_path, animated_asset_type, illustration_id, image_path, background_variant, layout, motion_intent, cut_type (from EDL), "
         "motion_intensity (low/medium/high — hook=high, body=medium, cta=low), "
         "parallax_depth (0-1, use 0.3 for body beats), camera_motion (push_in for hook, pan_left/right for body, none for cta).\n"
         "GENERATED RUNTIME SVG SUBJECT: every scene MUST include generated_asset. This is the primary scene visual Remotion will render as the main subject after Python materializes it into an SVG and stores generated_asset_path; it is not a decorative overlay and must not be omitted. "
         "Choose generated_asset.subject and visual_metaphor from the beat's meaning, not from hardcoded asset ids, and vary both across scenes. Visualize concrete entities and relationships such as buildings, data centers, server racks, power grids, countries, chips, cloud regions, network nodes, or data/power flows. "
         "Use generated_asset.elements as the 3-6 visual objects the runtime SVG generator will draw. Use generated_asset.connections as the 1-5 links that connect entities and show causality, dependency, data flow, power flow, or network flow. "
         "image_path is optional: copy it exactly from ComposedFrames only as a small reference card when present; never let it replace generated_asset as the primary visual. Copy illustration_id when present for backward metadata only; do not depend on semantic illustration ids as the scene subject.\n"
+        "ANIMATED ASSET FIELDS: animated_asset_path and animated_asset_type are optional future-ready accent fields for local runtime assets only. Set animated_asset_path only when the runtime already has a generated or downloaded local animated file to pass through; never invent remote URLs, never hallucinate paths, and leave both fields null otherwise. Use animated_asset_type for local gif, webp, png, apng, avif accents. Use animated_asset_type=primary only when the approved local animated asset should intentionally replace the generated SVG, or when generated_asset_path will be absent. Lottie is future-ready metadata only; do not require @remotion/lottie or output Lottie paths until the runtime has local Lottie support installed.\n"
         "Set motion_intent per beat from enter_up, slide_in, scale_burst, fade_in. Preserve approved ComposedFrames intent when it is already varied; if intents are missing or all the same, choose a varied sequence that fits beat type (hook scale_burst, body slide_in/enter_up alternation, stat scale_burst, rehook fade_in, cta enter_up). Do not output all enter_up.\n"
         "For motion_graphics: assign 1-2 accent graphics per beat that support the subject and selected motion_intent without covering it — "
         "hook: particles+ring_pulse around subject, body: wave+data_flow behind/along subject edges, stat: energy_burst+orbital around subject, rehook: grid_pulse behind subject, cta: kinetic_type_zoom as text accent only. "

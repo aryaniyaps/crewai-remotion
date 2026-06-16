@@ -42,13 +42,31 @@ def generate_scene_assets(state: ProductionState) -> None:
 
 def _ensure_connected(spec: GeneratedAssetSpec) -> GeneratedAssetSpec:
     """Guarantee the generated visual is a connected diagram, not isolated icons."""
-    if len(spec.elements) < 2:
-        return spec
+    elements = list(spec.elements)
+    if len(elements) == 0:
+        elements = [
+            GeneratedAssetElement(id="subject", kind="node", label=spec.subject[:24] or "Core Idea", role="subject", emphasis="high", x=0.42, y=0.54),
+            GeneratedAssetElement(id="outcome", kind="arrow", label="next step", role="outcome", emphasis="medium", x=0.72, y=0.54),
+        ]
+    elif len(elements) == 1:
+        subject_label = elements[0].label or spec.subject or "Core Idea"
+        elements.append(
+            GeneratedAssetElement(
+                id="outcome",
+                kind="arrow",
+                label=(spec.visual_metaphor or "next step")[:24] or "next step",
+                role="outcome",
+                emphasis="medium",
+                x=0.72,
+                y=0.54,
+            )
+        )
+        elements[0] = elements[0].model_copy(update={"label": subject_label[:26], "emphasis": "high", "x": elements[0].x or 0.36, "y": elements[0].y or 0.54})
 
     existing = {(c.from_id, c.to_id) for c in spec.connections}
     connections = list(spec.connections)
-    subject = next((e for e in spec.elements if e.emphasis == "high" or e.role == "subject"), spec.elements[0])
-    for element in spec.elements:
+    subject = next((e for e in elements if e.emphasis == "high" or e.role == "subject"), elements[0])
+    for element in elements:
         if element.id == subject.id:
             continue
         if (subject.id, element.id) in existing or (element.id, subject.id) in existing:
@@ -64,7 +82,7 @@ def _ensure_connected(spec: GeneratedAssetSpec) -> GeneratedAssetSpec:
                 flow=flow,
             )
         )
-    return spec.model_copy(update={"connections": connections})
+    return spec.model_copy(update={"elements": elements, "connections": connections})
 
 
 def _fallback_asset_spec(scene: SceneSpec) -> GeneratedAssetSpec:
@@ -124,11 +142,12 @@ def _render_svg(spec: GeneratedAssetSpec, scene: SceneSpec) -> str:
       <stop offset=\"1\" stop-color=\"#FF2E6F\" stop-opacity=\"0\"/>
     </linearGradient>
   </defs>
-  <rect x=\"30\" y=\"30\" width=\"840\" height=\"600\" rx=\"58\" fill=\"url(#panel)\" opacity=\"0.93\"/>
-  <rect x=\"30\" y=\"30\" width=\"840\" height=\"600\" rx=\"58\" fill=\"none\" stroke=\"#FFFFFF\" stroke-opacity=\"0.13\" stroke-width=\"3\"/>
-  <g opacity=\"0.48\">{particles}</g>
-  <text x=\"66\" y=\"82\" fill=\"#F8F8FF\" font-family=\"Inter, Arial, sans-serif\" font-size=\"34\" font-weight=\"800\" letter-spacing=\"0.2\">{title}</text>
-  <text x=\"68\" y=\"120\" fill=\"#B8B9C7\" font-family=\"Inter, Arial, sans-serif\" font-size=\"18\" font-weight=\"600\">{metaphor}</text>
+  <rect x="20" y="22" width="860" height="624" rx="64" fill="url(#panel)" opacity="0.97"/>
+  <rect x="20" y="22" width="860" height="624" rx="64" fill="none" stroke="#FFFFFF" stroke-opacity="0.18" stroke-width="4"/>
+  <rect x="48" y="158" width="804" height="440" rx="44" fill="#050817" opacity="0.42"/>
+  <g opacity="0.28">{particles}</g>
+  <text x="66" y="84" fill="#F8F8FF" font-family="Inter, Arial, sans-serif" font-size="44" font-weight="900" letter-spacing="-0.8">{title}</text>
+  <text x="68" y="124" fill="#E5E7F4" font-family="Inter, Arial, sans-serif" font-size="22" font-weight="800" opacity="0.82">{metaphor}</text>
   <g>{connection_svg}</g>
   <g>{element_svg}</g>
 </svg>"""
@@ -192,11 +211,13 @@ def _element_svg(e: GeneratedAssetElement, index: int) -> str:
     y = int((e.y or 0.5) * _CANVAS_H)
     label = html.escape(e.label[:26])
     kind = e.kind.lower().replace("-", "_")
-    scale = 1.18 if e.emphasis == "high" else 1.0 if e.emphasis == "medium" else 0.86
+    scale = 1.34 if e.emphasis == "high" else 1.16 if e.emphasis == "medium" else 1.0
     body = _primitive_svg(kind, label)
+    label_bg_w = max(118, min(260, 12 * len(label) + 44))
     return f"""<g transform=\"translate({x} {y}) scale({scale})\" filter=\"url(#glow)\">
   {body}
-  <text x=\"0\" y=\"96\" text-anchor=\"middle\" fill=\"#F8F8FF\" font-family=\"Inter, Arial, sans-serif\" font-size=\"22\" font-weight=\"800\">{label}</text>
+  <rect x=\"{-label_bg_w // 2}\" y=\"88\" width=\"{label_bg_w}\" height=\"34\" rx=\"17\" fill=\"#070A18\" fill-opacity=\"0.82\" stroke=\"#FFFFFF\" stroke-opacity=\"0.14\"/>
+  <text x=\"0\" y=\"113\" text-anchor=\"middle\" fill=\"#FFFFFF\" font-family=\"Inter, Arial, sans-serif\" font-size=\"22\" font-weight=\"900\" letter-spacing=\"-0.4\">{label}</text>
 </g>"""
 
 
@@ -237,18 +258,8 @@ def _connection_svg(c: GeneratedAssetConnection, by_id: dict[str, GeneratedAsset
     cx = (x1 + x2) // 2
     cy = min(y1, y2) - 70 - (index % 3) * 20
     flow = "url(#flowPower)" if c.flow.lower() in {"power", "energy", "money", "influence"} else "url(#flowData)"
-    label = html.escape(c.label[:20])
-    label_y = max(cy - 12, 168)
-    label_bg_w = max(54, min(170, 12 * len(label) + 22))
-    label_svg = (
-        f"<g opacity=\"0.92\"><rect x=\"{cx - label_bg_w // 2}\" y=\"{label_y - 19}\" "
-        f"width=\"{label_bg_w}\" height=\"25\" rx=\"12\" fill=\"#0B0D19\" fill-opacity=\"0.78\"/>"
-        f"<text x=\"{cx}\" y=\"{label_y}\" text-anchor=\"middle\" fill=\"#D8D9E6\" "
-        f"font-family=\"Inter, Arial, sans-serif\" font-size=\"15\" font-weight=\"800\">{label}</text></g>"
-    ) if label else ""
-    return f"""<path d=\"M{x1},{y1} Q{cx},{cy} {x2},{y2}\" fill=\"none\" stroke=\"#AEB0C0\" stroke-opacity=\"0.34\" stroke-width=\"5\" stroke-linecap=\"round\"/>
-<path d=\"M{x1},{y1} Q{cx},{cy} {x2},{y2}\" fill=\"none\" stroke=\"{flow}\" stroke-width=\"10\" stroke-linecap=\"round\" opacity=\"0.88\"/>
-{label_svg}"""
+    return f"""<path d=\"M{x1},{y1} Q{cx},{cy} {x2},{y2}\" fill=\"none\" stroke=\"#AEB0C0\" stroke-opacity=\"0.26\" stroke-width=\"5\" stroke-linecap=\"round\"/>
+<path d=\"M{x1},{y1} Q{cx},{cy} {x2},{y2}\" fill=\"none\" stroke=\"{flow}\" stroke-width=\"12\" stroke-linecap=\"round\" opacity=\"0.94\"/>"""
 
 
 def _particle_svg(index: int) -> str:

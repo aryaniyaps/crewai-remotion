@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from enum import Enum
 import json
 import shutil
@@ -10,9 +11,7 @@ from crewai_remotion.config import get_settings
 from crewai_remotion.models.production_state import ProductionState
 from crewai_remotion.models.video_spec import SfxCueSpec
 
-# CDN base URL for @remotion/sfx built-in sounds.
-# When a sound isn't available locally, we fall back to this CDN.
-_SFX_CDN_BASE = "https://remotion.media/sfx"
+log = logging.getLogger(__name__)
 
 
 def build_sfx_manifest() -> dict[str, Any]:
@@ -36,23 +35,24 @@ def _lookup_sfx(sfx_id: str) -> dict[str, Any] | None:
 def resolve_sfx_path(sfx_id: str) -> Path | None:
     """Resolve an SFX id to a local file path, if the file exists locally.
 
-    Returns None for CDN-only sounds (those that lack a local file).
+    Returns None for missing manifest entries or sounds without a local file.
     """
     entry = _lookup_sfx(sfx_id)
     if not entry:
         return None
     settings = get_settings()
     local = settings.root / "assets" / "sfx" / entry.get("file", "")
-    if local.exists():
+    if local.is_file():
         return local
     return None
 
 
 def resolve_sfx_src(sfx_id: str, run_id: str) -> str | None:
-    """Resolve an SFX id to a `src` string for Remotion.
+    """Resolve an SFX id to a local Remotion `src` string.
 
-    Local files are copied to remotion/public/runs/<id>/ and get a relative path.
-    CDN-only sounds get a direct HTTPS URL.
+    Local files are copied to remotion/public/runs/<id>/ by wire_sfx_to_spec()
+    and get a run-relative path. Sounds without local files are skipped; there
+    is intentionally no CDN fallback.
     """
     entry = _lookup_sfx(sfx_id)
     if not entry:
@@ -60,13 +60,10 @@ def resolve_sfx_src(sfx_id: str, run_id: str) -> str | None:
 
     settings = get_settings()
     local = settings.root / "assets" / "sfx" / entry.get("file", "")
-    if local.exists():
-        # Will be copied by wire_sfx_to_spec; return the public-relative path
+    if local.is_file():
         return f"runs/{run_id}/{local.name}"
 
-    # Fall back to CDN URL
-    filename = entry.get("file", f"{sfx_id}.wav")
-    return f"{_SFX_CDN_BASE}/{filename}"
+    return None
 
 
 def wire_sfx_to_spec(state: ProductionState) -> None:
@@ -95,15 +92,15 @@ def wire_sfx_to_spec(state: ProductionState) -> None:
         for cue in sound_plan.sfx_cues:
             entry = _lookup_sfx(cue.sfx_id)
             if not entry:
+                log.warning("SFX cue '%s': manifest entry not found, skipping", cue.sfx_id)
                 continue
             local = settings.root / "assets" / "sfx" / entry.get("file", "")
-            if local.exists():
+            if local.is_file():
                 dest = remotion_public / local.name
                 if not dest.exists():
                     shutil.copy2(local, dest)
                 src = f"runs/{run_id}/{local.name}"
             else:
-                # Skip cues whose files don't exist locally — CDN fallback is unreliable
                 log.warning("SFX cue '%s': file %s not found locally, skipping", cue.sfx_id, entry.get("file", ""))
                 continue
 
@@ -133,14 +130,16 @@ def wire_sfx_to_spec(state: ProductionState) -> None:
         for sfx_on_cut in sound_plan.sfx_on_cuts:
             sfx_id = sfx_on_cut.sfx
             if not sfx_id:
+                log.warning("SFX on cut '%s': empty sfx id, skipping", sfx_on_cut.cut_type)
                 continue
             entry = _lookup_sfx(sfx_id)
             if not entry:
+                log.warning("SFX on cut '%s': manifest entry not found, skipping", sfx_id)
                 continue
 
             frame = frame_by_cut.get(sfx_on_cut.cut_type, 0)
             local = settings.root / "assets" / "sfx" / entry.get("file", "")
-            if local.exists():
+            if local.is_file():
                 dest = remotion_public / local.name
                 if not dest.exists():
                     shutil.copy2(local, dest)

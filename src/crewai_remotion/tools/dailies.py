@@ -7,8 +7,43 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+import subprocess
 
 from crewai_remotion.models.production_state import ProductionState, DailiesReport
+
+
+def _expected_rendered_frames(state: ProductionState) -> int:
+    spec = state.video_spec
+    if not spec:
+        return 0
+    audio_frames = int(spec.audio.duration_sec * spec.fps) if spec.audio.duration_sec else spec.duration_frames
+    return max(1, min(spec.duration_frames, audio_frames))
+
+
+def _probe_video_frames(video_path: Path) -> int | None:
+    try:
+        result = subprocess.run(
+            [
+                "ffprobe",
+                "-v",
+                "error",
+                "-select_streams",
+                "v:0",
+                "-show_entries",
+                "stream=nb_frames",
+                "-of",
+                "default=nokey=1:noprint_wrappers=1",
+                str(video_path),
+            ],
+            check=True,
+            capture_output=True,
+            text=True,
+            timeout=20,
+        )
+    except (OSError, subprocess.CalledProcessError, subprocess.TimeoutExpired):
+        return None
+    value = result.stdout.strip().splitlines()[0] if result.stdout.strip() else ""
+    return int(value) if value.isdigit() else None
 
 
 def run_dailies(
@@ -44,20 +79,21 @@ def run_dailies(
     if file_size < 1024:
         issues.append({"error": f"Video file too small: {file_size} bytes"})
 
-    # Check 2: frame count from VideoSpec vs estimated
+    # Check 2: frame count from rendered media vs expected composition duration.
     if state.video_spec:
-        expected_frames = state.video_spec.duration_frames
-        # Approximate frame count from file size (very rough heuristic)
-        # ~50KB/frame for 1080p h264 at reasonable quality
-        estimated_frames = file_size / 50_000
-        drift = abs(estimated_frames - expected_frames) / max(expected_frames, 1)
-
-        if drift > 0.5:
-            issues.append({
-                "error": f"Estimated frame count drift: {drift:.1%}",
-                "expected_frames": expected_frames,
-                "estimated_frames": int(estimated_frames),
-            })
+        expected_frames = _expected_rendered_frames(state)
+        actual_frames = _probe_video_frames(video_path)
+        if actual_frames is None:
+            issues.append({"warning": "Could not probe rendered frame count with ffprobe"})
+            drift = 0.0
+        else:
+            drift = abs(actual_frames - expected_frames) / max(expected_frames, 1)
+            if drift > 0.08:
+                issues.append({
+                    "error": f"Rendered frame count drift: {drift:.1%}",
+                    "expected_frames": expected_frames,
+                    "actual_frames": actual_frames,
+                })
     else:
         drift = 0.0
 
