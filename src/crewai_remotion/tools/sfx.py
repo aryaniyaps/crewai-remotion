@@ -96,7 +96,6 @@ def wire_sfx_to_spec(state: ProductionState) -> None:
             entry = _lookup_sfx(cue.sfx_id)
             if not entry:
                 continue
-
             local = settings.root / "assets" / "sfx" / entry.get("file", "")
             if local.exists():
                 dest = remotion_public / local.name
@@ -104,8 +103,9 @@ def wire_sfx_to_spec(state: ProductionState) -> None:
                     shutil.copy2(local, dest)
                 src = f"runs/{run_id}/{local.name}"
             else:
-                filename = entry.get("file", f"{cue.sfx_id}.wav")
-                src = f"{_SFX_CDN_BASE}/{filename}"
+                # Skip cues whose files don't exist locally — CDN fallback is unreliable
+                log.warning("SFX cue '%s': file %s not found locally, skipping", cue.sfx_id, entry.get("file", ""))
+                continue
 
             cues.append({
                 "frame": cue.frame,
@@ -146,8 +146,8 @@ def wire_sfx_to_spec(state: ProductionState) -> None:
                     shutil.copy2(local, dest)
                 src = f"runs/{run_id}/{local.name}"
             else:
-                filename = entry.get("file", f"{sfx_id}.wav")
-                src = f"{_SFX_CDN_BASE}/{filename}"
+                log.warning("SFX on cut '%s': file %s not found locally, skipping", sfx_id, entry.get("file", ""))
+                continue
 
             cues.append({
                 "frame": frame,

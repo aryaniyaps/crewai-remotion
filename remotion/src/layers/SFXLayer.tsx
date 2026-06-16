@@ -36,16 +36,23 @@ export const SFXLayer: React.FC<SFXLayerProps> = ({cues}) => {
   return (
     <>
       {cues.map((cue, i) => {
-        const src = cue.src.startsWith('http')
-          ? cue.src
-          : staticFile(cue.src);
-        const volume = cue.volume ?? 0.7;
+        // Only handle http(s) URLs or local paths — skip empty/broken src
+        if (!cue.src) return null;
+        try {
+          const src = cue.src.startsWith('http')
+            ? cue.src
+            : staticFile(cue.src);
+          const volume = cue.volume ?? 0.7;
 
-        return (
-          <Sequence key={`sfx-${i}-${cue.frame}`} from={cue.frame}>
-            <Audio src={src} volume={volume} />
-          </Sequence>
-        );
+          return (
+            <Sequence key={`sfx-${i}-${cue.frame}`} from={cue.frame}>
+              <Audio src={src} volume={volume} />
+            </Sequence>
+          );
+        } catch {
+          // staticFile throws on missing files — skip gracefully
+          return null;
+        }
       })}
     </>
   );
