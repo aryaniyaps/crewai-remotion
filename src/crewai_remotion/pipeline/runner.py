@@ -29,6 +29,7 @@ from crewai_remotion.models.production_state import ProductionState, QCVerdict
 from crewai_remotion.models.writers_room import ContinuityBible
 from crewai_remotion.pipeline.topic import run_topic_pipeline
 from crewai_remotion.tools.image_assets import build_queries_from_script, resolve_scene_images
+from crewai_remotion.tools.generated_assets import generate_scene_assets
 from crewai_remotion.tools.music import attach_music
 from crewai_remotion.tools.render_remotion import render_video
 from crewai_remotion.tools.sfx import wire_sfx_to_spec
@@ -366,6 +367,8 @@ def _run_render_phase(
         _wire_audio_to_spec(state, captions)
         # Wire SFX assets into video spec
         wire_sfx_to_spec(state)
+        # Materialize model-authored generated_asset specs into SVG files for Remotion.
+        generate_scene_assets(state)
 
         # Picture lock gate
         ok_lock, msg_lock, cert = gate_picture_lock(

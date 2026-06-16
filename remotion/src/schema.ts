@@ -3,6 +3,32 @@ import {zColor} from '@remotion/zod-types';
 
 // ── Scene ──
 
+export const GeneratedAssetElementSchema = z.object({
+  id: z.string(),
+  kind: z.string(),
+  label: z.string(),
+  role: z.string().optional(),
+  emphasis: z.string().optional(),
+  x: z.number().nullable().optional(),
+  y: z.number().nullable().optional(),
+});
+
+export const GeneratedAssetConnectionSchema = z.object({
+  from_id: z.string(),
+  to_id: z.string(),
+  label: z.string().optional(),
+  flow: z.string().optional(),
+});
+
+export const GeneratedAssetSpecSchema = z.object({
+  style: z.string().optional(),
+  subject: z.string(),
+  visual_metaphor: z.string().optional(),
+  elements: z.array(GeneratedAssetElementSchema),
+  connections: z.array(GeneratedAssetConnectionSchema),
+  motion_notes: z.string().optional(),
+});
+
 export const SceneSchema = z.object({
   id: z.string(),
   type: z.enum(['HookBeat', 'PointBeat', 'StatBeat', 'QuoteBeat', 'CTABeat']),
@@ -11,6 +37,8 @@ export const SceneSchema = z.object({
   duration_frames: z.number().int().positive(),
   illustration_id: z.string().nullable().optional(),
   image_path: z.string().nullable().optional(),
+  generated_asset: GeneratedAssetSpecSchema.nullable().optional(),
+  generated_asset_path: z.string().nullable().optional(),
   background_variant: z.enum(['primary', 'secondary', 'surface']).optional(),
   layout: z
     .enum([
@@ -172,3 +200,6 @@ export const VideoSpecSchema = z.object({
 export type VideoSpecProps = z.infer<typeof VideoSpecSchema>;
 export type SceneSpec = z.infer<typeof SceneSchema>;
 export type ThemeTokens = z.infer<typeof ThemeSchema>;
+export type GeneratedAssetElement = z.infer<typeof GeneratedAssetElementSchema>;
+export type GeneratedAssetConnection = z.infer<typeof GeneratedAssetConnectionSchema>;
+export type GeneratedAssetSpec = z.infer<typeof GeneratedAssetSpecSchema>;

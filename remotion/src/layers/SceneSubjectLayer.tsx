@@ -18,6 +18,7 @@ type SubjectLayerProps = {
   subhead?: string;
   sceneType: string;
   imagePath?: string | null;
+  generatedAssetPath?: string | null;
   illustrationId?: string | null;
   layout?: string;
   motionIntensity?: MotionIntensity;
@@ -92,6 +93,7 @@ export const SceneSubjectLayer: React.FC<SubjectLayerProps> = ({
   subhead,
   sceneType,
   imagePath,
+  generatedAssetPath,
   illustrationId,
   layout,
   motionIntensity = 'medium',
@@ -155,14 +157,25 @@ export const SceneSubjectLayer: React.FC<SubjectLayerProps> = ({
           transformOrigin: 'center center',
         }}
       >
-        <VectorSubject
-          kind={entityKind}
-          theme={theme}
-          frame={frame}
-          motionScale={motionScale}
-          width={width}
-          height={height}
-        />
+        {generatedAssetPath ? (
+          <GeneratedAssetSubject
+            theme={theme}
+            generatedAssetPath={generatedAssetPath}
+            frame={frame}
+            motionScale={motionScale}
+            width={width}
+            height={height}
+          />
+        ) : (
+          <VectorSubject
+            kind={entityKind}
+            theme={theme}
+            frame={frame}
+            motionScale={motionScale}
+            width={width}
+            height={height}
+          />
+        )}
         {imagePath && (
           <ImageReferenceCard
             theme={theme}
@@ -176,6 +189,70 @@ export const SceneSubjectLayer: React.FC<SubjectLayerProps> = ({
         )}
       </div>
     </AbsoluteFill>
+  );
+};
+
+const GeneratedAssetSubject: React.FC<{
+  theme: ThemeTokens;
+  generatedAssetPath: string;
+  frame: number;
+  motionScale: number;
+  width: number;
+  height: number;
+}> = ({theme, generatedAssetPath, frame, motionScale, width, height}) => {
+  const stageWidth = Math.min(width - 112, 930);
+  const stageHeight = Math.min(height * 0.41, 780);
+  const glowX = 50 + Math.sin(frame / 70) * 18 * motionScale;
+  const glowY = 48 + Math.cos(frame / 64) * 14 * motionScale;
+  const tilt = Math.sin(frame / 72) * 0.85 * motionScale;
+  const imageScale = 0.94 + Math.sin(frame / 96) * 0.012 * motionScale;
+
+  return (
+    <div
+      style={{
+        position: 'relative',
+        width: stageWidth,
+        height: stageHeight,
+        borderRadius: 56,
+        padding: 32,
+        boxSizing: 'border-box',
+        background: `linear-gradient(145deg, ${theme.surface}f2, ${theme.primary}22 48%, ${theme.secondary}2f), radial-gradient(circle at ${glowX}% ${glowY}%, ${theme.accent}44, transparent 46%)`,
+        border: '2px solid rgba(255,255,255,0.2)',
+        boxShadow: `0 52px 110px rgba(0,0,0,0.42), 0 0 78px ${theme.primary}3a, inset 0 0 0 1px rgba(255,255,255,0.08)`,
+        transform: `perspective(1200px) rotateZ(${tilt}deg) rotateY(${tilt * 0.55}deg)`,
+        overflow: 'hidden',
+      }}
+    >
+      <div
+        style={{
+          position: 'absolute',
+          inset: 18,
+          borderRadius: 42,
+          background: `linear-gradient(180deg, rgba(255,255,255,0.14), transparent 34%), radial-gradient(circle at 50% 72%, ${theme.caption_highlight}24, transparent 48%)`,
+          boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.14)',
+        }}
+      />
+      <Img
+        src={staticFile(generatedAssetPath)}
+        style={{
+          position: 'relative',
+          zIndex: 2,
+          width: '100%',
+          height: '100%',
+          objectFit: 'contain',
+          filter: 'drop-shadow(0 30px 58px rgba(0,0,0,0.32))',
+          transform: `scale(${imageScale})`,
+        }}
+      />
+      <div
+        style={{
+          position: 'absolute',
+          inset: 0,
+          background: 'linear-gradient(115deg, rgba(255,255,255,0.18), transparent 26%, transparent 72%, rgba(255,255,255,0.1))',
+          mixBlendMode: 'screen',
+        }}
+      />
+    </div>
   );
 };
 

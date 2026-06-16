@@ -53,6 +53,35 @@ class MotionGraphicSpec(BaseModel):
         except (TypeError, ValueError):
             return {}
 
+
+class GeneratedAssetElement(BaseModel):
+    model_config = {"json_schema_extra": {"additionalProperties": False}}
+    id: str
+    kind: str
+    label: str
+    role: str = "subject"
+    emphasis: str = "medium"
+    x: float | None = None
+    y: float | None = None
+
+
+class GeneratedAssetConnection(BaseModel):
+    model_config = {"json_schema_extra": {"additionalProperties": False}}
+    from_id: str
+    to_id: str
+    label: str = ""
+    flow: str = "data"
+
+
+class GeneratedAssetSpec(BaseModel):
+    model_config = {"json_schema_extra": {"additionalProperties": False}}
+    style: str = "editorial_vector"
+    subject: str
+    visual_metaphor: str = ""
+    elements: list[GeneratedAssetElement]
+    connections: list[GeneratedAssetConnection]
+    motion_notes: str = ""
+
 class SceneSpec(BaseModel):
     model_config = {"json_schema_extra": {"additionalProperties": False}}
     id: str
@@ -62,6 +91,8 @@ class SceneSpec(BaseModel):
     duration_frames: int = 90
     illustration_id: str | None = None
     image_path: str | None = None
+    generated_asset: GeneratedAssetSpec | None = None
+    generated_asset_path: str | None = None
     background_variant: str = "primary"
     layout: str = "center_stack"
     motion_intent: str = "enter_up"
