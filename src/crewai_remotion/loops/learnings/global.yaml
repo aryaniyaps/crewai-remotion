@@ -1,0 +1,70 @@
+lessons:
+- failure_mode: headline_overflow
+  fix_heuristic: Cap headlines at 8 words; use fitText in Remotion
+  department: visual_development
+  evidence_run_ids: []
+- failure_mode: off_beat_cuts
+  fix_heuristic: Align hard_cut to vo_phrase_start via Whisper timestamps
+  department: post_production
+  evidence_run_ids: []
+- failure_mode: storyboard_visual_issues_detected:_11/18_criteria_ok_(61%,_t
+  fix_heuristic: 'Storyboard visual issues detected: 11/18 criteria OK (61%, threshold
+    67%)'
+  department: storyboard
+  evidence_run_ids:
+  - 2654aead704a
+- failure_mode: music_track_'upbeat_track'_not_found_in_licensed_manifest
+  fix_heuristic: Music track 'upbeat_track' not found in licensed manifest
+  department: clearance
+  evidence_run_ids:
+  - 2654aead704a
+- failure_mode: smoke_test_failed:_frame_end:_rangeerror:_cannot_use_frame_9
+  fix_heuristic: "Smoke test failed: frame_end: RangeError: Cannot use frame 999:\
+    \ Duration of composition is 579, therefore the highest frame that can be rendered\
+    \ is 578\n    at Object.validateFrame (/home/aryaniyaps/ai-projects/crewai-remotion/remo"
+  department: smoke_stills
+  evidence_run_ids:
+  - 2654aead704a
+- failure_mode: passes=false,_drift=0.998
+  fix_heuristic: Passes=False, drift=0.998
+  department: dailies
+  evidence_run_ids:
+  - 2654aead704a
+- failure_mode: dailies_issue:_estimated_frame_count_drift:_99.8%
+  fix_heuristic: 'Dailies issue: Estimated frame count drift: 99.8%'
+  department: dailies
+  evidence_run_ids:
+  - 2654aead704a
+- failure_mode: 6_beats_(max_5)
+  fix_heuristic: 6 beats (max 5)
+  department: writers_room
+  evidence_run_ids:
+  - ed7acfe2669d
+- failure_mode: smoke_test_failed:_frame_end:_rangeerror:_cannot_use_frame_1
+  fix_heuristic: "Smoke test failed: frame_end: RangeError: Cannot use frame 1049:\
+    \ Duration of composition is 606, therefore the highest frame that can be rendered\
+    \ is 605\n    at Object.validateFrame (/home/aryaniyaps/ai-projects/crewai-remotion/rem"
+  department: smoke_stills
+  evidence_run_ids:
+  - ed7acfe2669d
+- failure_mode: storyboard_visual_issues_detected:_7/12_criteria_ok_(58%,_th
+  fix_heuristic: 'Storyboard visual issues detected: 7/12 criteria OK (58%, threshold
+    67%)'
+  department: storyboard
+  evidence_run_ids:
+  - 075dc5c48242
+- failure_mode: music_track_'upbeat_instrumental'_not_found_in_licensed_mani
+  fix_heuristic: Music track 'upbeat_instrumental' not found in licensed manifest
+  department: clearance
+  evidence_run_ids:
+  - 075dc5c48242
+- failure_mode: smoke_test_failed:_frame_mid:_rangeerror:_cannot_use_frame_6
+  fix_heuristic: "Smoke test failed: frame_mid: RangeError: Cannot use frame 675:\
+    \ Duration of composition is 477, therefore the highest frame that can be rendered\
+    \ is 476\n    at Object.validateFrame (/home/aryaniyaps/ai-projects/crewai-remotion/remo;\
+    \ frame_end: RangeError: Cannot use frame 1349: Duration of composition is 477,\
+    \ therefore the highest frame that can be rendered is 476\n    at Object.validateFrame\
+    \ (/home/aryaniyaps/ai-projects/crewai-remotion/rem"
+  department: smoke_stills
+  evidence_run_ids:
+  - 075dc5c48242

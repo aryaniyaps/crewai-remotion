@@ -1,0 +1,31 @@
+{
+  "tracks": [
+    {
+      "id": "mood_upbeat",
+      "file": "upbeat/upbeat-01.mp3",
+      "mood": "upbeat",
+      "bpm": 120,
+      "duration_sec": 60,
+      "license": "ok",
+      "source": "royalty-free"
+    },
+    {
+      "id": "mood_calm",
+      "file": "upbeat/calm-01.mp3",
+      "mood": "calm",
+      "bpm": 80,
+      "duration_sec": 60,
+      "license": "ok",
+      "source": "royalty-free"
+    },
+    {
+      "id": "mood_dramatic",
+      "file": "upbeat/dramatic-01.mp3",
+      "mood": "dramatic",
+      "bpm": 140,
+      "duration_sec": 60,
+      "license": "ok",
+      "source": "royalty-free"
+    }
+  ]
+}

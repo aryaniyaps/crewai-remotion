@@ -1,0 +1,27 @@
+{
+  "name": "crewai-remotion-compositions",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "studio": "remotion studio",
+    "render": "remotion render",
+    "build": "remotion bundle"
+  },
+  "dependencies": {
+    "@remotion/captions": "4.0.286",
+    "@remotion/cli": "4.0.286",
+    "@remotion/google-fonts": "4.0.286",
+    "@remotion/layout-utils": "4.0.286",
+    "@remotion/media-utils": "4.0.286",
+    "@remotion/transitions": "4.0.286",
+    "@remotion/zod-types": "4.0.286",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "remotion": "4.0.286",
+    "zod": "3.22.3"
+  },
+  "devDependencies": {
+    "@types/react": "18.3.12",
+    "typescript": "5.6.3"
+  }
+}

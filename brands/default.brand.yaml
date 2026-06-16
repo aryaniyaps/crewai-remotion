@@ -1,0 +1,37 @@
+name: Default
+voice:
+  tone: [bold, direct, witty]
+  avoid_words: [synergy, leverage]
+  hook_patterns: [question, stat-shock]
+visual:
+  primary: "#FF3366"
+  secondary: "#1A1A2E"
+  accent: "#FFD700"
+  surface: "#0F0F14"
+  caption_highlight: "#39E508"
+  font_heading: Space Grotesk
+  font_body: Space Grotesk
+  font_weights: [400, 500, 700]
+  motion_style: snappy
+  text_density: minimal
+  texture: grain
+assets:
+  logo: null
+  hero_image: null
+  lottie_overrides: {}
+audio:
+  tts_provider: piper
+  voice: en_US-lessac-medium
+  tts_clone_sample: null
+  music_mood: upbeat
+  music_volume: 0.25
+platform:
+  format: vertical
+  width: 1080
+  height: 1920
+  fps: 30
+  safe_margin: 48
+series:
+  intro_beat_template: branded_sting
+  outro_beat_template: cta_card
+  hook_style_preference: question_led

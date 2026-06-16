@@ -1,0 +1,10 @@
+# Golden regression fixture: hook curiosity gap
+# Replay this in plan mode to verify eval scores don't regress.
+topic: "3 AI tools every founder should use"
+brand: brands/default.brand.yaml
+duration: 30
+eval_floors:
+  hook_scroll_stop: 0.75
+  cut_audio_sync: 0.85
+  e2e_ship_readiness: 0.80
+  brief_completeness: 1.0

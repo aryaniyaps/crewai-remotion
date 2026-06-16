@@ -1,0 +1,29 @@
+# Reference schema for brand YAML files
+name: YourBrandName          # required
+voice:
+  tone: [bold, direct]       # 2-3 adjectives
+  avoid_words: []            # optional banned words
+  hook_patterns: [question]  # question | contrarian | stat-shock
+visual:
+  primary: "#FF3366"
+  secondary: "#1A1A2E"
+  accent: "#FFD700"
+  surface: "#0F0F14"
+  caption_highlight: "#39E508"
+  font_heading: Space Grotesk
+  font_body: Space Grotesk
+  motion_style: snappy       # snappy | smooth | kinetic
+  text_density: minimal
+  texture: grain
+audio:
+  tts_provider: piper          # piper | f5-tts | elevenlabs
+  voice: en_US-lessac-medium   # Piper voice name or ElevenLabs voice id
+  tts_clone_sample: null       # optional path to reference WAV (3-10s) for voice cloning
+  music_mood: upbeat           # upbeat | calm | dramatic
+  music_volume: 0.25           # 0.0-1.0
+platform:
+  format: vertical
+  width: 1080
+  height: 1920
+  fps: 30
+  safe_margin: 48

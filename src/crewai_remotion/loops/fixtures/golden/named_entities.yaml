@@ -1,0 +1,9 @@
+# Golden regression fixture: named entities, no ambiguity
+topic: "Notion, Linear, and Perplexity for startup founders"
+brand: brands/default.brand.yaml
+duration: 30
+eval_floors:
+  hook_scroll_stop: 0.75
+  script_drawability: 0.70
+  e2e_ship_readiness: 0.80
+  layout_safe_zones: 1.0

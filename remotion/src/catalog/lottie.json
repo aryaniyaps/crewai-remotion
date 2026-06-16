@@ -1,0 +1,94 @@
+{
+  "catalog": [
+    {
+      "id": "sparkle",
+      "file": "sparkle.json",
+      "tags": ["accent", "celebrate", "positive"],
+      "license": "ok"
+    },
+    {
+      "id": "arrow_up",
+      "file": "arrow_up.json",
+      "tags": ["growth", "stat", "momentum"],
+      "license": "ok"
+    },
+    {
+      "id": "check_circle",
+      "file": "check_circle.json",
+      "tags": ["confirmation", "proof", "trust"],
+      "license": "ok"
+    },
+    {
+      "id": "lightbulb",
+      "file": "lightbulb.json",
+      "tags": ["idea", "insight", "hook"],
+      "license": "ok"
+    },
+    {
+      "id": "rocket",
+      "file": "rocket.json",
+      "tags": ["launch", "startup", "growth"],
+      "license": "ok"
+    },
+    {
+      "id": "chart_bar",
+      "file": "chart_bar.json",
+      "tags": ["stat", "data", "proof"],
+      "license": "ok"
+    },
+    {
+      "id": "heart",
+      "file": "heart.json",
+      "tags": ["emotion", "testimonial", "community"],
+      "license": "ok"
+    },
+    {
+      "id": "gear",
+      "file": "gear.json",
+      "tags": ["tool", "process", "how-to"],
+      "license": "ok"
+    },
+    {
+      "id": "target",
+      "file": "target.json",
+      "tags": ["goal", "focus", "achievement"],
+      "license": "ok"
+    },
+    {
+      "id": "chat_bubble",
+      "file": "chat_bubble.json",
+      "tags": ["quote", "testimonial", "social"],
+      "license": "ok"
+    },
+    {
+      "id": "icon_hook",
+      "file": "icon_hook.json",
+      "tags": ["hook", "attention", "scroll-stop"],
+      "license": "ok"
+    },
+    {
+      "id": "icon_point",
+      "file": "icon_point.json",
+      "tags": ["point", "body", "value"],
+      "license": "ok"
+    },
+    {
+      "id": "icon_stat",
+      "file": "icon_stat.json",
+      "tags": ["stat", "number", "data"],
+      "license": "ok"
+    },
+    {
+      "id": "icon_cta",
+      "file": "icon_cta.json",
+      "tags": ["cta", "action", "follow"],
+      "license": "ok"
+    },
+    {
+      "id": "icon_quote",
+      "file": "icon_quote.json",
+      "tags": ["quote", "testimonial", "social-proof"],
+      "license": "ok"
+    }
+  ]
+}

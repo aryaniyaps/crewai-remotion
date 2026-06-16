@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+# Project-local CLI wrapper — works without activating .venv
+set -euo pipefail
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+VENV_BIN="$ROOT/.venv/bin/crewai-remotion"
+
+if [[ -x "$VENV_BIN" ]]; then
+  exec "$VENV_BIN" "$@"
+fi
+
+if command -v uv >/dev/null 2>&1; then
+  exec uv --directory "$ROOT" run crewai-remotion "$@"
+fi
+
+cat >&2 <<'EOF'
+crewai-remotion is not installed.
+
+One-time setup:
+  uv python install 3.13
+  uv venv --python 3.13 .venv
+  uv pip install -e .
+  cd remotion && npm install
+
+Then run:
+  ./crewai-remotion create --topic "..." --brand brands/default.brand.yaml --non-interactive
+EOF
+exit 127

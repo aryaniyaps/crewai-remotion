@@ -1,0 +1,48 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "crewai-remotion"
+version = "0.1.0"
+description = "Agentic social video CLI — CrewAI Flow + Remotion"
+readme = "README.md"
+requires-python = ">=3.11,<3.14"
+dependencies = [
+  "crewai>=0.86.0",
+  "crewai-tools>=0.17.0",
+  "pydantic>=2.0",
+  "pydantic-settings>=2.0",
+  "typer>=0.12.0",
+  "rich>=13.0",
+  "pyyaml>=6.0",
+  "python-dotenv>=1.0",
+  "httpx>=0.27.0",
+  "pillow>=10.0",
+  "piper-tts>=1.4.0",
+  "opencv-python-headless>=4.8.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0", "ruff>=0.6.0"]
+vision = ["opencv-python-headless>=4.10", "openai>=1.0"]
+images = ["rembg>=0.3.0", "onnxruntime>=1.18"]
+tts-f5 = ["f5-tts>=0.3.0"]
+tts-elevenlabs = ["elevenlabs>=1.0"]
+
+[project.scripts]
+crewai-remotion = "crewai_remotion.cli.app:main"
+
+[tool.uv]
+dev-dependencies = []
+
+[tool.uv.scripts]
+# uv run create -- --topic "..." --brand brands/default.brand.yaml --non-interactive
+create = "crewai-remotion create"
+plan = "crewai-remotion plan"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/crewai_remotion"]
+
+[tool.hatch.build.targets.sdist]
+include = ["src/crewai_remotion"]

@@ -1,0 +1,1 @@
+Replace with royalty-free MP3 (e.g. upbeat_01.mp3) and update manifest.json path.

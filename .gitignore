@@ -1,0 +1,37 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+dist/
+build/
+.pytest_cache/
+.ruff_cache/
+
+# Env & secrets
+.env
+.env.local
+
+# Output
+output/
+
+# Piper voice models (downloaded on first TTS run)
+assets/piper-voices/
+
+# Brand active pointer
+brands/.active
+
+# Node / Remotion
+node_modules/
+remotion/node_modules/
+remotion/build/
+remotion/.remotion/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+*.swp
