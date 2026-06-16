@@ -21,6 +21,44 @@ from crewai_remotion.tools.serper_client import SerperError, image_search
 
 _UNSPLASH_ACCESS_KEY = ""  # Set via env UNSPLASH_ACCESS_KEY
 
+_BLOCKED_STOCK_HOSTS = (
+    "alamy.com",
+    "istockphoto.com",
+    "shutterstock.com",
+    "dreamstime.com",
+    "depositphotos.com",
+    "123rf.com",
+    "adobestock.com",
+    "gettyimages.com",
+    "bigstockphoto.com",
+)
+
+_BLOCKED_STOCK_TERMS = (
+    "alamy",
+    "istock",
+    "shutterstock",
+    "dreamstime",
+    "depositphotos",
+    "stock photo",
+    "royalty-free",
+    "watermark",
+    "editorial image",
+    "licensing",
+    "logo design",
+    "ai logo",
+    "portrait",
+    "headshot",
+    "ranked:",
+    "ranking",
+)
+
+
+def _is_blocked_stock_source(r: ImageSearchResult) -> bool:
+    haystack = f"{r.title} {r.image_url} {r.source_url}".lower()
+    return any(host in haystack for host in _BLOCKED_STOCK_HOSTS) or any(
+        term in haystack for term in _BLOCKED_STOCK_TERMS
+    )
+
 
 def _ext_from_url(url: str) -> str:
     path = urlparse(url).path.lower()
@@ -68,13 +106,17 @@ def _score_image(r: ImageSearchResult, query: str = "") -> float:
     if w < 400 or h < 400:
         score -= 5.0
 
-    # Penalize slop markers
+    # Reject watermark-prone stock providers. They produce visible watermarks
+    # (Alamy/iStock/etc.) that are worse than using our semantic vector entities.
+    if _is_blocked_stock_source(r):
+        score -= 100.0
+
+    # Penalize decorative/low-value assets
     title = r.title.lower()
-    slop_markers = ["icon", "logo vector", "clipart", "stock vector", "illustration"]
+    slop_markers = ["icon", "logo vector", "clipart", "stock vector"]
     for marker in slop_markers:
         if marker in title:
             score -= 2.0
-
     # Boost for query relevance in title
     if query:
         query_words = set(query.lower().split())
@@ -92,17 +134,16 @@ def pick_best_image(
 ) -> ImageSearchResult | None:
     if not results:
         return None
-    scored = [(r, _score_image(r, query)) for r in results]
+    acceptable = [r for r in results if not _is_blocked_stock_source(r)]
+    if not acceptable:
+        return None
+    scored = [(r, _score_image(r, query)) for r in acceptable]
     scored.sort(key=lambda x: x[1], reverse=True)
     for r, score in scored:
         if score > 0 and (r.width or 0) >= min_width:
             return r
-    # Fallback: best by size
-    ranked = sorted(results, key=lambda r: (r.width or 0, r.height or 0), reverse=True)
-    for r in ranked:
-        if r.width and r.width >= min_width:
-            return r
-    return ranked[0]
+    # No clean result beats the threshold — let Remotion's semantic subject layer render.
+    return None
 
 
 def _search_unsplash(query: str, num: int = 5) -> list[ImageSearchResult]:

@@ -183,10 +183,12 @@ def run_postproduction_crew(
     # ── Mograph TD ──
     mograph_td = Agent(
         role="Mograph TD",
-        goal="Assemble VideoSpec from ComposedFrames + all post artifacts. "
+        goal="Assemble VideoSpec from ComposedFrames + all post artifacts while preserving subject assets. "
              "Never override composition — implement only what was approved.",
         backstory="Motion graphics technical director. You build the Remotion comp from approved boards. "
-                  "You map agent tokens to Remotion primitives. You flag conflicts, never resolve them silently.",
+                  "You map agent tokens to Remotion primitives, including SceneSubjectLayer semantic illustration ids. "
+                  "You preserve subject assets exactly and make motion graphics support the subject instead of replacing it. "
+                  "You flag conflicts, never resolve them silently.",
         llm=llm,
         verbose=True,
     )
@@ -220,9 +222,13 @@ def run_postproduction_crew(
         "illustration_id, image_path, background_variant, layout, motion_intent, cut_type (from EDL), "
         "motion_intensity (low/medium/high — hook=high, body=medium, cta=low), "
         "parallax_depth (0-1, use 0.3 for body beats), camera_motion (push_in for hook, pan_left/right for body, none for cta).\n"
-        "For motion_graphics: assign 1-2 graphics per beat matching the motion_intent — "
-        "hook: particles+ring_pulse, body: wave+data_flow, stat: energy_burst+orbital, rehook: grid_pulse, cta: kinetic_type_zoom. "
-        "The config field on each graphic MUST be a single-line JSON string like '{\"count\":20,\"speed\":0.4,\"color\":\"primary\"}'.\n"
+        "STRICT subject preservation: copy image_path exactly from ComposedFrames whenever present; do not drop, rewrite, or replace it. "
+        "When image_path is empty, copy the semantic illustration_id exactly from ComposedFrames so SceneSubjectLayer can render ids like data_center, server_rack, power_grid, chip, globe_network, or city_buildings. "
+        "Every scene must carry either image_path or illustration_id when ComposedFrames provided one.\n"
+        "Set motion_intent per beat from enter_up, slide_in, scale_burst, fade_in. Preserve approved ComposedFrames intent when it is already varied; if intents are missing or all the same, choose a varied sequence that fits beat type (hook scale_burst, body slide_in/enter_up alternation, stat scale_burst, rehook fade_in, cta enter_up). Do not output all enter_up.\n"
+        "For motion_graphics: assign 1-2 accent graphics per beat that support the subject and selected motion_intent without covering it — "
+        "hook: particles+ring_pulse around subject, body: wave+data_flow behind/along subject edges, stat: energy_burst+orbital around subject, rehook: grid_pulse behind subject, cta: kinetic_type_zoom as text accent only. "
+        "The config field on each graphic MUST be a single-line JSON string like '{\"count\":20,\"speed\":0.4,\"color\":\"primary\"}'. "
         "Set theme from brand. Leave audio fields empty — music/voiceover paths are wired separately. "
         "Duration frames = sum of beat durations from EDL. "
         "Set width=1080, height=1920, fps from brand.",

@@ -14,16 +14,22 @@ def gate_av_script(
     if not script.beats:
         return False, "AV script has no beats"
 
-    # Beat count vs budget
-    # Beat count vs budget — exclude terminal end_card beats (branded close ≤2s)
+    # Beat count vs budget — exclude terminal end_card beats (branded close ≤2s).
+    # For 25–35s social videos, the writers room intentionally targets up to
+    # 6 beats (hook, 2-3 body beats, rehook, CTA/end card). Treat a lower
+    # generated complexity budget as advisory so the gate doesn't contradict
+    # the writer's deterministic quality rules.
     content_beats = [b for b in script.beats
                      if not (b.beat_type == "cta" and b.duration_hint_sec <= 3.0
                              and b.beat_id == script.beats[-1].beat_id)]
     effective_count = len(content_beats)
-    if budget and effective_count > budget.max_beats:
+    duration_count_ceiling = 6 if 25 <= script.total_duration_sec <= 35 else None
+    budget_max_beats = budget.max_beats if budget else 6
+    effective_max_beats = max(budget_max_beats, duration_count_ceiling or budget_max_beats)
+    if effective_count > effective_max_beats:
         return False, (
-            f"Beat count {effective_count} content beats exceeds complexity budget max_beats={budget.max_beats}"
-            f" ({len(script.beats)} total with end card)"
+            f"Beat count {effective_count} content beats exceeds max_beats={effective_max_beats}"
+            f" ({len(script.beats)} total with end card; budget={budget_max_beats})"
         )
 
     # Max words per beat (hard cap at 8 for on_screen_text)

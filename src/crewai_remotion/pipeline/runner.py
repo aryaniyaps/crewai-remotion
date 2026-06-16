@@ -46,13 +46,39 @@ from crewai_remotion.loops.flywheel import save_lessons_from_state
 console = Console()
 
 
+def _asset_is_safe_subject(asset: object) -> bool:
+    """Use downloaded images only when they are clearly relevant, non-watermarked subject assets.
+
+    The semantic SceneSubjectLayer is better than random stock/licensing/logo/portrait hits.
+    """
+    source = str(getattr(asset, "source_url", "") or "").lower()
+    alt = str(getattr(asset, "alt_text", "") or "").lower()
+    haystack = f"{source} {alt}"
+    blocked = (
+        "alamy", "istock", "shutterstock", "dreamstime", "depositphotos",
+        "licensing", "logo design", "ai logo", "portrait", "headshot",
+        "ranked:", "ranking", "stock photo", "royalty-free", "editorial image",
+    )
+    if any(term in haystack for term in blocked):
+        return False
+    subject_terms = (
+        "data center", "datacenter", "server rack", "servers", "semiconductor",
+        "chip", "power grid", "electricity pylon", "fiber optic", "network",
+        "city skyline", "buildings", "cloud infrastructure",
+    )
+    return any(term in haystack for term in subject_terms)
+
+
 def _apply_scene_images(state: ProductionState) -> None:
     if not state.composed_frames or not state.scene_images:
         return
     for frame in state.composed_frames.frames:
         asset = state.scene_images.for_beat(frame.beat_id)
-        if asset:
+        if asset and _asset_is_safe_subject(asset):
             frame.image_path = asset.public_path
+        else:
+            # Prefer deterministic semantic vectors over irrelevant/watermarked stock.
+            frame.image_path = None
 
 _SCENE_TYPE_MAP: dict[str, str] = {
     "hook": "HookBeat",

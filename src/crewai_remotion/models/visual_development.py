@@ -6,23 +6,27 @@ from pydantic import BaseModel, Field
 
 from crewai_remotion.models.cinematic_cuts import CutType
 
+class _StrictSchemaModel(BaseModel):
+    model_config = {"json_schema_extra": {"additionalProperties": False}}
+
+
 
 # ── Reference Librarian ──
 
-class MoodReference(BaseModel):
+class MoodReference(_StrictSchemaModel):
     tag: str
     rationale: str
     apply_to_beats: list[str] = Field(default_factory=list)
 
 
-class MoodBoard(BaseModel):
+class MoodBoard(_StrictSchemaModel):
     references: list[MoodReference] = Field(default_factory=list)
     keywords: list[str] = Field(default_factory=list)
 
 
 # ── Art Director ──
 
-class StyleBible(BaseModel):
+class StyleBible(_StrictSchemaModel):
     mood_keywords: list[str] = Field(default_factory=list)
     reference_urls: list[str] = Field(default_factory=list)
     do_list: list[str] = Field(default_factory=list)
@@ -31,7 +35,7 @@ class StyleBible(BaseModel):
     texture: Literal["none", "grain", "paper"] = "grain"
 
 
-class StyleFrameSpec(BaseModel):
+class StyleFrameSpec(_StrictSchemaModel):
     beat_id: str
     mood: str
     color_emphasis: str = "primary"
@@ -42,11 +46,11 @@ class StyleFrameSpec(BaseModel):
     approved: bool = False
 
 
-class StyleFrameSpecs(BaseModel):
+class StyleFrameSpecs(_StrictSchemaModel):
     frames: list[StyleFrameSpec] = Field(default_factory=list)
 
 
-class StyleFrameApproval(BaseModel):
+class StyleFrameApproval(_StrictSchemaModel):
     approved: bool = False
     reviewer: str = "Creative Director"
     notes: str = ""
@@ -54,7 +58,7 @@ class StyleFrameApproval(BaseModel):
 
 # ── Production Designer ──
 
-class PerBeatEnvironment(BaseModel):
+class PerBeatEnvironment(_StrictSchemaModel):
     beat_id: str
     background_type: str = "gradient_mesh"
     depth_layers: int = 2
@@ -62,7 +66,7 @@ class PerBeatEnvironment(BaseModel):
     atmospheric_density: float = Field(default=0.3, ge=0.0, le=1.0)
 
 
-class EnvironmentPlan(BaseModel):
+class EnvironmentPlan(_StrictSchemaModel):
     beats: list[PerBeatEnvironment] = Field(default_factory=list)
     background_style: str = "gradient_mesh"
     depth_layers: int = 2
@@ -71,7 +75,7 @@ class EnvironmentPlan(BaseModel):
 
 # ── Typography Director ──
 
-class PerBeatTypeSpec(BaseModel):
+class PerBeatTypeSpec(_StrictSchemaModel):
     beat_id: str
     tier: Literal["display", "headline", "body", "caption"] = "headline"
     weight_contrast: int = 200   # diff between heading and body weight
@@ -80,7 +84,7 @@ class PerBeatTypeSpec(BaseModel):
     emphasis_words: list[str] = Field(default_factory=list)
 
 
-class TypeSpec(BaseModel):
+class TypeSpec(_StrictSchemaModel):
     beats: list[PerBeatTypeSpec] = Field(default_factory=list)
     headline_tier: str = "display"
     body_tier: str = "body"
@@ -90,7 +94,7 @@ class TypeSpec(BaseModel):
 
 # ── Illustrator ──
 
-class IllustrationSlot(BaseModel):
+class IllustrationSlot(_StrictSchemaModel):
     beat_id: str
     asset_type: Literal["lottie", "svg", "shape", "photo"] = "lottie"
     catalog_id: str
@@ -98,14 +102,14 @@ class IllustrationSlot(BaseModel):
     scale_tier: Literal["sm", "md", "lg"] = "md"
 
 
-class IllustrationPlan(BaseModel):
+class IllustrationPlan(_StrictSchemaModel):
     slots: list[IllustrationSlot] = Field(default_factory=list)
 
 
 # ── Storyboard Artist ──
 
 
-class StoryboardFrame(BaseModel):
+class StoryboardFrame(_StrictSchemaModel):
     """Per-frame storyboard data for visual verification."""
     beat_id: str
     frame_index: int = 0  # 0-based index within the composition
@@ -114,14 +118,14 @@ class StoryboardFrame(BaseModel):
     approved: bool = False
 
 
-class StoryboardFrameSet(BaseModel):
+class StoryboardFrameSet(_StrictSchemaModel):
     """Collection of storyboard frames keyed by label (hook, body, cta)."""
     frames: dict[str, StoryboardFrame] = Field(default_factory=dict)
     pacing_notes: str = ""
     total_beats: int = 0
 
 
-class RoughStoryboardBeat(BaseModel):
+class RoughStoryboardBeat(_StrictSchemaModel):
     beat_id: str
     action: str
     camera_notes: str = ""
@@ -132,14 +136,14 @@ class RoughStoryboardBeat(BaseModel):
     approved: bool = False
 
 
-class RoughStoryboard(BaseModel):
+class RoughStoryboard(_StrictSchemaModel):
     beats: list[RoughStoryboardBeat] = Field(default_factory=list)
     pacing_notes: str = ""
     total_beats: int = 0
 
 # ── Compositor ──
 
-class ComposedFrame(BaseModel):
+class ComposedFrame(_StrictSchemaModel):
     beat_id: str
     scene_type: str  # HookBeat | PointBeat | StatBeat | QuoteBeat | CTABeat
     headline: str
@@ -160,7 +164,7 @@ class ComposedFrame(BaseModel):
     motion_intent: str = "enter_up"
 
 
-class ComposedFrames(BaseModel):
+class ComposedFrames(_StrictSchemaModel):
     frames: list[ComposedFrame] = Field(default_factory=list)
     approved: bool = False
     beat_count: int = 0
@@ -169,33 +173,33 @@ class ComposedFrames(BaseModel):
 
 # ── Creative Review ──
 
-class CreativeReviewNotes(BaseModel):
+class CreativeReviewNotes(_StrictSchemaModel):
     """Creative Director's table-read notes."""
     brief_execution_score: float = Field(default=0.0, ge=0.0, le=1.0)
     prioritized_issues: list[str] = Field(default_factory=list)
     approved: bool = False
 
 
-class ArtReviewNotes(BaseModel):
+class ArtReviewNotes(_StrictSchemaModel):
     visual_cohesion_score: float = Field(default=0.0, ge=0.0, le=1.0)
     issues: list[str] = Field(default_factory=list)
 
 
-class LayoutReviewNotes(BaseModel):
+class LayoutReviewNotes(_StrictSchemaModel):
     readability_score: float = Field(default=0.0, ge=0.0, le=1.0)
     issues: list[str] = Field(default_factory=list)
 
 
 # ── Clearance ──
 
-class FeasibilityReport(BaseModel):
+class FeasibilityReport(_StrictSchemaModel):
     """Pipeline TD checks ComposedFrames against Remotion capabilities."""
     passes: bool = False
     blockers: list[str] = Field(default_factory=list)
     warnings: list[str] = Field(default_factory=list)
 
 
-class BrandComplianceReport(BaseModel):
+class BrandComplianceReport(_StrictSchemaModel):
     """Brand Guardian adversarial check against brand YAML."""
     passes: bool = False
     violations: list[str] = Field(default_factory=list)
@@ -204,7 +208,7 @@ class BrandComplianceReport(BaseModel):
 
 # ── Revision Notes ──
 
-class RevisionNotes(BaseModel):
+class RevisionNotes(_StrictSchemaModel):
     beat_id: str
     department: str
     issue: str

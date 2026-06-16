@@ -19,10 +19,13 @@ def run_asset_research_crew(
     llm = get_llm()
     researcher = Agent(
         role="Visual Asset Researcher",
-        goal="Define precise image search queries per scene beat for vertical video",
+        goal="Define concrete subject-driven image search queries per scene beat for vertical video",
         backstory=(
-            "You pick searchable queries for product logos, UI screenshots, or stock photos. "
-            "Use serper_image_search to validate queries return usable vertical-friendly images."
+            "You pick searchable queries for one clear visual subject per beat: data center building exterior, "
+            "server rack, power grid, semiconductor wafer, globe fiber network, city buildings, or another concrete object implied by the script. "
+            "Prefer isolated subject photos or illustrations with a clear main object and vertical-friendly composition. "
+            "Avoid abstract stock backgrounds, generic gradients, empty tech textures, and decorative-only imagery. "
+            "Use serper_image_search to validate queries return usable subject references."
         ),
         llm=llm,
         tools=[SerperImageSearchTool()],
@@ -32,8 +35,10 @@ def run_asset_research_crew(
     task = Task(
         description=(
             f"Topic: {topic}\nBrand: {brand.name} ({brand.visual.primary})\nBeats: {beats_desc}\n"
-            "For each point/stat/hook beat, output SceneImageQuery with beat_id, search_query, visual_rationale. "
-            "Prefer official logos or clean product photos. Use image search tool to sanity-check queries."
+            "For every beat, output SceneImageQuery with beat_id, search_query, visual_rationale, preferred_style. "
+            "Each search_query must name a concrete main subject/object plus useful qualifiers such as isolated, cutout, exterior, close-up, photo reference, illustration reference, vertical composition, or transparent background. "
+            "visual_rationale must state the subject the scene will animate. Prefer official logos/screenshots only when the beat is specifically about a product or UI; otherwise prefer concrete subject photos/illustrations. "
+            "Do not request abstract stock backgrounds, waves, particles, blurred lights, or generic motion-graphic textures. Use image search tool to sanity-check queries."
         ),
         expected_output="AssetResearchBrief with scene_queries list",
         agent=researcher,

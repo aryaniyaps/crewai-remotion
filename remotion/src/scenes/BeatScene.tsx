@@ -12,6 +12,7 @@ import {
 import {MotionGraphicsLayer} from '../layers/MotionGraphicsLayer';
 import {ParallaxLayer} from '../layers/ParallaxLayer';
 import {BackgroundLayer} from '../layers/BackgroundLayer';
+import {SceneSubjectLayer} from '../layers/SceneSubjectLayer';
 import type {MotionGraphic} from '../catalog/motion-graphics';
 
 export const BeatScene: React.FC<{
@@ -22,6 +23,7 @@ export const BeatScene: React.FC<{
   backgroundVariant?: string;
   layout?: string;
   imagePath?: string | null;
+  illustrationId?: string | null;
   showHeadline?: boolean;
   motionGraphics?: MotionGraphic[];
   motionIntent?: string;
@@ -37,6 +39,7 @@ export const BeatScene: React.FC<{
   backgroundVariant,
   layout,
   imagePath,
+  illustrationId,
   showHeadline = true,
   motionGraphics,
   motionIntent,
@@ -165,6 +168,19 @@ export const BeatScene: React.FC<{
       }}
     >
       <BackgroundLayer theme={theme} variant={backgroundVariant} />
+      <SceneSubjectLayer
+        theme={theme}
+        headline={headline}
+        subhead={subhead}
+        sceneType={sceneType}
+        imagePath={imagePath}
+        illustrationId={illustrationId}
+        layout={layout}
+        motionIntensity={motionIntensity}
+        frame={frame}
+        durationFrames={durationFrames}
+      />
+
 
       {/* Motion graphics layer — replaces static illustrations */}
       {resolvedMotionGraphics.length > 0 && (

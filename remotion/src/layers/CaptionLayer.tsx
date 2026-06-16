@@ -1,17 +1,60 @@
 import React, {useMemo} from 'react';
 import {AbsoluteFill, useCurrentFrame, useVideoConfig} from 'remotion';
 import {createTikTokStyleCaptions} from '@remotion/captions';
-import type {Caption} from '@remotion/captions';
+import type {Caption, TikTokToken} from '@remotion/captions';
 import type {ThemeTokens} from '../design/tokens';
 
 type CaptionWord = {text: string; start_ms: number; end_ms: number};
 
+const MIN_VISIBLE_TOKENS = 3;
+const TARGET_VISIBLE_TOKENS = 5;
+const MAX_VISIBLE_TOKENS = 7;
+
+type CaptionToken = Pick<TikTokToken, 'text' | 'fromMs' | 'toMs'>;
+
+const clamp = (value: number, min: number, max: number) =>
+  Math.min(Math.max(value, min), max);
+
+const findActiveTokenIndex = (tokens: CaptionToken[], frameMs: number) => {
+  const currentIndex = tokens.findIndex(
+    (token) => frameMs >= token.fromMs && frameMs < token.toMs,
+  );
+  if (currentIndex >= 0) return currentIndex;
+
+  let nearestIndex = 0;
+  let nearestDistance = Number.POSITIVE_INFINITY;
+  for (let i = 0; i < tokens.length; i++) {
+    const token = tokens[i];
+    const distance =
+      frameMs < token.fromMs ? token.fromMs - frameMs : frameMs - token.toMs;
+    if (distance < nearestDistance) {
+      nearestDistance = distance;
+      nearestIndex = i;
+    }
+  }
+
+  return nearestIndex;
+};
+
+const createActiveTokenWindow = (tokens: CaptionToken[], activeIndex: number) => {
+  const visibleCount = Math.min(
+    tokens.length,
+    clamp(TARGET_VISIBLE_TOKENS, MIN_VISIBLE_TOKENS, MAX_VISIBLE_TOKENS),
+  );
+  const start = clamp(
+    activeIndex - Math.floor(visibleCount / 2),
+    0,
+    Math.max(tokens.length - visibleCount, 0),
+  );
+
+  return {start, tokens: tokens.slice(start, start + visibleCount)};
+};
+
 /**
- * CaptionLayer — TikTok-style word-highlighted captions.
+ * CaptionLayer — mobile karaoke captions.
  *
- * Uses @remotion/captions createTikTokStyleCaptions for word grouping.
- * Current word gets caption_highlight color; past words get white.
- * Positioned in bottom 15% of frame, above danger zone.
+ * Uses @remotion/captions for timing pages, then renders only a compact active
+ * word window so long transcripts never become multi-line blocks.
  */
 export const CaptionLayer: React.FC<{
   theme: ThemeTokens;
@@ -48,24 +91,19 @@ export const CaptionLayer: React.FC<{
   const activePage = result.pages.find(
     (p) => frameMs >= p.startMs && frameMs < p.startMs + p.durationMs,
   );
-  if (!activePage || !activePage.tokens || activePage.tokens.length === 0) return null;
+  if (!activePage || !activePage.tokens || activePage.tokens.length === 0) {
+    return null;
+  }
 
-  const tokens = activePage.tokens;
-
-  // Find current word within the page
-  const currentIndex = tokens.findIndex(
-    (t) => frameMs >= t.fromMs && frameMs < t.toMs,
-  );
-
-  // Current word index for highlighting
-  const resolvedCurrent = currentIndex >= 0 ? currentIndex : tokens.length;
-
+  const pageTokens = activePage.tokens;
+  const activeTokenIndex = findActiveTokenIndex(pageTokens, frameMs);
+  const visibleWindow = createActiveTokenWindow(pageTokens, activeTokenIndex);
   return (
     <AbsoluteFill
       style={{
         justifyContent: 'flex-end',
         alignItems: 'center',
-        paddingBottom: 160,
+        paddingBottom: 220,
         paddingLeft: 60,
         paddingRight: 60,
         pointerEvents: 'none',
@@ -76,27 +114,38 @@ export const CaptionLayer: React.FC<{
           display: 'flex',
           flexWrap: 'wrap',
           justifyContent: 'center',
-          gap: '8px 12px',
-          maxWidth: 960,
+          alignContent: 'center',
+          gap: '6px 14px',
+          width: 'fit-content',
+          maxWidth: 900,
+          maxHeight: 118,
+          overflow: 'hidden',
+          padding: '18px 28px 20px',
+          borderRadius: 30,
+          background: 'rgba(6, 10, 24, 0.66)',
+          boxShadow: '0 18px 44px rgba(0, 0, 0, 0.32)',
         }}
       >
-        {tokens.map((token, i) => {
-          const isCurrent = i === currentIndex;
-          const isPast = i < resolvedCurrent;
+        {visibleWindow.tokens.map((token, i) => {
+          const tokenIndex = visibleWindow.start + i;
+          const isCurrent = tokenIndex === activeTokenIndex;
+          const isPast = tokenIndex < activeTokenIndex;
           return (
             <span
-              key={`${token.fromMs}-${i}`}
+              key={`${token.fromMs}-${tokenIndex}`}
               style={{
-                fontSize: 36,
-                fontWeight: 700,
+                flex: '0 1 auto',
+                fontSize: 44,
+                fontWeight: 800,
                 fontFamily: theme.font_body,
                 color: isCurrent
                   ? theme.caption_highlight
                   : isPast
                     ? '#ffffff'
-                    : '#ffffff99',
-                textShadow: '0 2px 8px rgba(0,0,0,0.5)',
-                lineHeight: 1.3,
+                    : 'rgba(255, 255, 255, 0.58)',
+                textShadow: '0 3px 12px rgba(0,0,0,0.72)',
+                lineHeight: 1.05,
+                letterSpacing: '-0.02em',
               }}
             >
               {token.text}

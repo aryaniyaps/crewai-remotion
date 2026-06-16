@@ -130,9 +130,12 @@ def run_visual_development(
     # ── Illustrator ──
     illustrator = Agent(
         role="Illustrator",
-        goal="Select illustration slots from catalog — Lottie, SVG, or geometric shapes per beat",
+        goal="Define one concrete animated subject slot per beat using photo assets or semantic flat-vector ids",
         backstory=f"Brand palette: primary={brand.visual.primary}, accent={brand.visual.accent}. "
-                  "You pick from the curated Lottie/SVG catalog. Never describe pixels — use catalog_ids only.",
+                  "Every beat needs a dominant subject that can be animated in a polished flat/vector educational style. "
+                  "Use Available images when they contain a useful beat-specific subject; otherwise choose semantic ids only, "
+                  "such as data_center, server_rack, power_grid, chip, globe_network, city_buildings, robot_arm, factory, chart_stack. "
+                  "Motion graphics are accents, never the subject.",
         llm=llm,
         verbose=True,
     )
@@ -140,9 +143,10 @@ def run_visual_development(
         f"AVScript beats: {script_json}\n"
         f"Available images: {image_info}\n"
         f"Brand Lottie overrides: {json.dumps(brand.assets.lottie_overrides)}\n"
-        "Per beat that needs illustration: asset_type (lottie/svg/shape/photo), "
-        "catalog_id (from lottie catalog), placement_zone (tl/tr/ml/mr/bl/br/center), "
-        "scale_tier (sm/md/lg). Max 3 lottie slots total.",
+        "Per beat, create exactly one concrete subject slot: asset_type (photo when Available images has a useful subject, otherwise lottie/svg/shape), "
+        "catalog_id (for non-photo slots use a semantic subject id such as data_center, server_rack, power_grid, chip, globe_network, city_buildings; for photo slots reference the exact available image path/id), "
+        "placement_zone (tl/tr/ml/mr/bl/br/center), scale_tier (sm/md/lg). "
+        "The subject must be a real object/entity implied by the beat text, not abstract waves, blobs, particles, or background texture. Max 3 lottie slots total.",
         response_format=IllustrationPlan,
     ).pydantic
 
@@ -169,16 +173,18 @@ def run_visual_development(
     # ── Compositor ──
     compositor = Agent(
         role="Compositor",
-        goal="Compose final frame layout — focal points, zones, negative space, safe margins. Never center everything.",
+        goal="Compose final frame layout around a dominant concrete subject while preserving approved image/illustration choices",
         backstory=f"{comp_ref[:600]} {layout_ref[:400]} "
                   f"Brand text_density: {brand.visual.text_density}. "
                   "You are the final authority on screen composition. "
-                  "Every beat: one focal point, declared zones, negative space ratio ≥ 0.25, safe margins.",
+                  "Every beat: one dominant subject in the upper/mid frame, one focal point, declared zones, negative space ratio ≥ 0.25, safe margins. "
+                  "Captions carry narration, so scene text must stay short and must not collide with the bottom caption area.",
         llm=llm,
         verbose=True,
     )
     composed_frames: ComposedFrames = compositor.kickoff(
         f"AVScript beats: {script_json}\n"
+        f"Available images: {image_info}\n"
         f"TypeSpec: {type_spec.model_dump_json()}\n"
         f"IllustrationPlan: {illustration_plan.model_dump_json()}\n"
         f"EnvironmentPlan: {environment_plan.model_dump_json()}\n"
@@ -189,8 +195,13 @@ def run_visual_development(
         "headline_zone, illustration_zone, logo_zone, "
         "negative_space_ratio (≥0.25 for minimal text_density), "
         "balance_notes, safe_margin_ok=true, "
-        "illustration_id (from IllustrationPlan), "
+        "illustration_id, image_path, "
         "background_variant, layout, motion_intent. "
+        "If Available images contains a usable asset for the beat_id, copy its exact public_path/image_path into image_path and do not discard it. "
+        "If no photo is ideal, set image_path=null and set illustration_id to a semantic SceneSubjectLayer id from the IllustrationPlan/catalog_id such as data_center, server_rack, power_grid, chip, globe_network, city_buildings, robot_arm, factory, or chart_stack. "
+        "headline must be 3-5 words max and subhead 0-4 words; never duplicate the full narration because captions carry the sentence text. "
+        "Keep headline zones away from bottom captions; when captions exist, the subject owns upper/mid frame. "
+        "Choose varied motion_intent by beat from enter_up, slide_in, scale_burst, fade_in rather than repeating one value. "
         "Alternate layout between consecutive beats. approved=true.",
         response_format=ComposedFrames,
     ).pydantic
